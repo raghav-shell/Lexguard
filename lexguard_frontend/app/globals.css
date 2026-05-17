@@ -497,3 +497,98 @@ html {
     animation-duration: 0.5s;
   }
 }
+
+/* Print Styles for PDF Export */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: A4 portrait;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+    @bottom-left {
+      content: "Confidential AI-Generated Assessment | Prepared by LEXGUARD AI";
+      font-family: sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide navigation, buttons, and animations */
+  nav, button, .glass-button, .animate-blob-morph, .pointer-events-none, .no-print {
+    display: none !important;
+  }
+
+  /* Reset fixed/sticky positions for printing */
+  .fixed, .sticky, .absolute {
+    position: relative !important;
+  }
+
+  /* Expand scrollable areas to show full content */
+  .overflow-hidden, .overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Simplify cards for print */
+  .glass, .glass-strong, .glass-subtle, .glass-ultra {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 24px;
+  }
+
+  /* Text colors for readability */
+  .text-slate-400, .text-slate-500, .text-slate-600 {
+    color: #475569 !important;
+  }
+  
+  .text-slate-800, .text-slate-900 {
+    color: #0f172a !important;
+  }
+
+  /* Ensure the grid stacks nicely or fits the page */
+  .grid {
+    display: block !important;
+  }
+  
+  .lg\:col-span-5, .lg\:col-span-7, .md\:grid-cols-2 > div {
+    width: 100% !important;
+    margin-bottom: 2rem !important;
+  }
+
+  /* Subtle Watermark */
+  body::before {
+    content: "LEXGUARD AI";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 8rem;
+    color: rgba(168, 139, 250, 0.03);
+    pointer-events: none;
+    z-index: -1;
+    font-weight: 800;
+  }
+
+  /* Force page breaks for cover page */
+  .page-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+}
