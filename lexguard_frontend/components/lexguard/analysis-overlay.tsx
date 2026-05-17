@@ -108,31 +108,25 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
             {/* Large breathing gradient orbs */}
             <motion.div
               animate={{
-                scale: [1, 1.4, 1],
-                opacity: [0.3, 0.5, 0.3],
-                x: [0, 100, 0],
-                y: [0, -50, 0],
+                opacity: [0.3, 0.6, 0.3],
               }}
               transition={{
                 duration: 6,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="absolute w-[600px] h-[600px] rounded-full"
+              className="absolute w-[600px] h-[600px] rounded-full blur-[80px]"
               style={{
-                background: 'radial-gradient(circle, rgba(168, 139, 250, 0.4) 0%, transparent 70%)',
-                filter: 'blur(100px)',
+                background: 'radial-gradient(circle, rgba(168, 139, 250, 0.5) 0%, transparent 70%)',
                 left: '10%',
                 top: '10%',
+                transform: 'translate3d(0,0,0)' // Force GPU acceleration without moving
               }}
             />
 
             <motion.div
               animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.25, 0.45, 0.25],
-                x: [0, -80, 0],
-                y: [0, 60, 0],
+                opacity: [0.25, 0.55, 0.25],
               }}
               transition={{
                 duration: 8,
@@ -140,19 +134,18 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
                 ease: "easeInOut",
                 delay: 0.5
               }}
-              className="absolute w-[500px] h-[500px] rounded-full"
+              className="absolute w-[500px] h-[500px] rounded-full blur-[80px]"
               style={{
-                background: 'radial-gradient(circle, rgba(244, 114, 182, 0.35) 0%, transparent 70%)',
-                filter: 'blur(80px)',
+                background: 'radial-gradient(circle, rgba(244, 114, 182, 0.4) 0%, transparent 70%)',
                 right: '10%',
                 bottom: '20%',
+                transform: 'translate3d(0,0,0)'
               }}
             />
 
             <motion.div
               animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.2, 0.4, 0.2],
+                opacity: [0.2, 0.5, 0.2],
               }}
               transition={{
                 duration: 5,
@@ -160,12 +153,12 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
                 ease: "easeInOut",
                 delay: 1
               }}
-              className="absolute w-[400px] h-[400px] rounded-full"
+              className="absolute w-[400px] h-[400px] rounded-full blur-[80px]"
               style={{
-                background: 'radial-gradient(circle, rgba(34, 211, 238, 0.3) 0%, transparent 70%)',
-                filter: 'blur(70px)',
+                background: 'radial-gradient(circle, rgba(34, 211, 238, 0.4) 0%, transparent 70%)',
                 left: '30%',
                 bottom: '10%',
+                transform: 'translate3d(0,0,0)'
               }}
             />
           </div>

@@ -26,7 +26,8 @@ SCHEMA:
     "fairness": Integer (0-100)
   },
   "clauses": [ 
-    // Insert the EXACT JSON objects from 'agent_findings' here.
-    // Do NOT omit any fields. Ensure 'real_world_impact' and 'affected_party' are preserved.
+    // Select ONLY the top 5 to 8 highest-priority clauses from 'agent_findings'.
+    // Do NOT include more than 8 clauses to maintain focus and performance.
+    // Preserve ALL fields for the selected clauses (including 'real_world_impact').
   ]
 }

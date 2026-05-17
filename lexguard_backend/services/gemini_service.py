@@ -1,9 +1,36 @@
 import os
 import json
 import google.generativeai as genai
-from utils.helpers import clean_json_response
+from utils.helpers import clean_json_response, safe_json_loads
+import typing_extensions as typing
 
-async def generate_json_response(prompt: str, content: str) -> dict:
+class ClauseSchema(typing.TypedDict):
+    category: str
+    text: str
+    risk_level: str
+    explanation: str
+    confidence_score: int
+    affected_party: str
+    negotiation_tip: str
+    real_world_impact: str
+
+class RiskBreakdownSchema(typing.TypedDict):
+    employment: int
+    privacy: int
+    financial: int
+    ip: int
+    fairness: int
+
+class MasterSchema(typing.TypedDict):
+    overall_risk_score: int
+    fairness_score: int
+    overall_verdict: str
+    summary: str
+    top_concerns: list[str]
+    risk_breakdown: RiskBreakdownSchema
+    clauses: list[ClauseSchema]
+
+async def generate_json_response(prompt: str, content: str, response_schema=None) -> dict | list:
     """
     Calls Gemini API with the given prompt and content, forcing JSON output.
     """
@@ -23,7 +50,8 @@ async def generate_json_response(prompt: str, content: str) -> dict:
         temperature=0.1,
         candidate_count=1,
         max_output_tokens=4096,
-        response_mime_type="application/json"
+        response_mime_type="application/json",
+        response_schema=response_schema
     )
     
     try:
@@ -31,8 +59,7 @@ async def generate_json_response(prompt: str, content: str) -> dict:
             full_prompt,
             generation_config=generation_config
         )
-        cleaned_text = clean_json_response(response.text)
-        return json.loads(cleaned_text)
+        return safe_json_loads(response.text)
     except Exception as e:
         print(f"Gemini API Error: {str(e)}")
         raise e

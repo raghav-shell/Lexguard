@@ -1,6 +1,6 @@
 import asyncio
 import os
-from services.gemini_service import generate_json_response
+from services.gemini_service import generate_json_response, ClauseSchema
 
 async def run_agent(agent_type: str, chunks: list[str]) -> list[dict]:
     """
@@ -25,17 +25,17 @@ DO NOT wrap the response in ```json ``` markdown. Return raw JSON.
 Schema for each object in the array:
 {
   "category": "Domain (e.g. Employment, Privacy, Financial)",
-  "text": "The exact verbatim contract text you are flagging",
+  "text": "The exact verbatim contract text you are flagging (KEEP UNDER 20 WORDS, use ellipses if needed)",
   "risk_level": "high", "medium", or "low",
-  "explanation": "Clear, professional explanation of why this is a risk",
+  "explanation": "Clear, professional explanation of why this is a risk (KEEP TO 1 SENTENCE)",
   "confidence_score": Integer between 0 and 100,
   "affected_party": "e.g., Employee, Consultant, Contractor",
   "negotiation_tip": "A practical sentence on how to counter or negotiate this term",
-  "real_world_impact": "CRITICAL: Write a human, practical, and emotionally understandable consequence. Good: 'This clause may prevent you from joining competitors for 24 months after resignation.' Bad: 'This is restrictive.'"
+  "real_world_impact": "CRITICAL: Write a human, practical consequence. Good: 'This clause may prevent you from joining competitors for 24 months.' Bad: 'This is restrictive.'"
 }
 """
         
-        result = await generate_json_response(augmented_prompt, content_to_analyze)
+        result = await generate_json_response(augmented_prompt, content_to_analyze, response_schema=list[ClauseSchema])
         
         if isinstance(result, list):
             return result

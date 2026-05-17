@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 from services.agent_analysis import analyze_with_agents
-from services.gemini_service import generate_json_response
+from services.gemini_service import generate_json_response, MasterSchema
 
 async def build_final_analysis(clauses: list[dict]) -> dict:
     """
@@ -15,9 +15,9 @@ async def build_final_analysis(clauses: list[dict]) -> dict:
         with open(prompt_path, 'r') as f:
             master_prompt = f.read()
             
-        content_to_analyze = json.dumps({"agent_findings": clauses})
+        content_to_analyze = json.dumps({"agent_findings": clauses}, ensure_ascii=False)
         
-        result = await generate_json_response(master_prompt, content_to_analyze)
+        result = await generate_json_response(master_prompt, content_to_analyze, response_schema=MasterSchema)
         
         # Ensure clauses have IDs
         if "clauses" in result:

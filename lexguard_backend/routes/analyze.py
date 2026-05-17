@@ -2,8 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 import asyncio
 from services.pdf_parser import extract_text_from_pdf
 from services.chunking import chunk_legal_text
-from services.agent_analysis import analyze_with_agents
-from services.risk_analysis import build_final_analysis
+from services.unified_analysis import build_super_analysis
 from services.mock_fallback import get_fallback_mock_response
 import os
 import json
@@ -32,8 +31,10 @@ async def progressive_status_updates():
         "Finalizing cinematic JSON output..."
     ]
     for stage in stages:
+        if analysis_status["stage"] in ["Complete", "Complete (Fallback)"]:
+            break
         analysis_status["stage"] = stage
-        await asyncio.sleep(1.5)  # Pace the updates
+        await asyncio.sleep(1.0)  # Pace the updates slightly faster
 
 @router.post("/analyze-contract")
 async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
@@ -60,11 +61,9 @@ async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile =
         if not chunks:
             return get_fallback_mock_response()
             
-        # 4. Multi-Agent Simulated Analysis (Concurrent)
-        agent_clauses = await analyze_with_agents(chunks)
-        
-        # 5. Risk Synthesis
-        final_json = await build_final_analysis(agent_clauses)
+        # 4. Unified Super-Prompt Analysis
+        # Replaces 6 API calls with 1 call while preserving exact schema
+        final_json = await build_super_analysis(chunks)
         
         # 6. Inject raw extracted text for Contract Viewer
         final_json["extracted_text"] = text

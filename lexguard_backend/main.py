@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # Load env variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Import routers
 from routes.analyze import router as analyze_router
