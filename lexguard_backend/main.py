@@ -25,6 +25,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://lexguard123.vercel.app",
 ]
 if FRONTEND_URL:
     allowed_origins.append(FRONTEND_URL)
