@@ -1,14 +1,20 @@
 import json
 import urllib.request
 import urllib.error
+import ssl
 import os
 import time
 import asyncio
+import certifi
 from utils.helpers import safe_json_loads
+
+# Use certifi's CA bundle to fix SSL certificate verification on macOS
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 async def generate_openrouter_response(prompt: str, content: str) -> dict:
     """
     Calls OpenRouter API as a fallback provider with retry logic and timing.
+    Uses certifi for SSL cert verification (required on macOS Python installs).
     """
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key or api_key == "your_openrouter_api_key_here":
@@ -41,7 +47,8 @@ async def generate_openrouter_response(prompt: str, content: str) -> dict:
     )
 
     def _make_request():
-        with urllib.request.urlopen(req, timeout=45) as response:
+        # Pass SSL_CONTEXT with certifi CA bundle to fix macOS cert issues
+        with urllib.request.urlopen(req, timeout=45, context=SSL_CONTEXT) as response:
             return response.read().decode('utf-8')
 
     max_retries = 2
