@@ -505,13 +505,13 @@ html {
     size: A4 portrait;
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 8pt;
       color: #94a3b8;
     }
     @bottom-left {
       content: "Confidential AI-Generated Assessment | Prepared by LEXGUARD AI";
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 8pt;
       color: #94a3b8;
     }
@@ -519,18 +519,23 @@ html {
 
   body {
     background: white !important;
-    color: black !important;
+    color: #0f172a !important;
+    font-family: 'Inter', Georgia, serif !important;
+    font-size: 10pt !important;
+    line-height: 1.7 !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  /* Hide navigation, buttons, and animations */
-  nav, button, .glass-button, .animate-blob-morph, .pointer-events-none, .no-print {
+  /* Hide navigation, buttons, animations, and interactive elements */
+  nav, button, .glass-button, .animate-blob-morph,
+  .pointer-events-none, .no-print,
+  [class*="framer-motion"], .cursor-pointer {
     display: none !important;
   }
 
   /* Reset fixed/sticky positions for printing */
-  .fixed, .sticky, .absolute {
+  .fixed, .sticky {
     position: relative !important;
   }
 
@@ -541,35 +546,29 @@ html {
     max-height: none !important;
   }
 
-  /* Simplify cards for print */
+  /* Simplify cards for print — clean borders, no shadows */
   .glass, .glass-strong, .glass-subtle, .glass-ultra {
-    background: white !important;
+    background: #fafafa !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     break-inside: avoid;
     page-break-inside: avoid;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    border-radius: 12px !important;
   }
 
-  /* Text colors for readability */
-  .text-slate-400, .text-slate-500, .text-slate-600 {
-    color: #475569 !important;
-  }
-  
-  .text-slate-800, .text-slate-900 {
-    color: #0f172a !important;
-  }
+  /* Text readability */
+  .text-slate-400, .text-slate-500 { color: #64748b !important; }
+  .text-slate-600, .text-slate-700 { color: #334155 !important; }
+  .text-slate-800, .text-slate-900 { color: #0f172a !important; }
 
-  /* Ensure the grid stacks nicely or fits the page */
-  .grid {
-    display: block !important;
-  }
-  
+  /* Grid stacking for print */
+  .grid { display: block !important; }
   .lg\:col-span-5, .lg\:col-span-7, .md\:grid-cols-2 > div {
     width: 100% !important;
-    margin-bottom: 2rem !important;
+    margin-bottom: 1.5rem !important;
   }
 
   /* Subtle Watermark */
@@ -580,15 +579,38 @@ html {
     left: 50%;
     transform: translate(-50%, -50%) rotate(-45deg);
     font-size: 8rem;
-    color: rgba(168, 139, 250, 0.03);
+    color: rgba(168, 139, 250, 0.035);
     pointer-events: none;
     z-index: -1;
-    font-weight: 800;
+    font-weight: 900;
+    letter-spacing: 0.2em;
   }
 
-  /* Force page breaks for cover page */
-  .page-break-after {
-    page-break-after: always;
-    break-after: page;
+  /* Page breaks */
+  .page-break-after { page-break-after: always; break-after: page; }
+  .page-break-before { page-break-before: always; break-before: page; }
+}
+
+/* GPU Rendering Optimization Hints */
+.framer-motion-will-change,
+[data-framer-component-type] {
+  will-change: opacity, transform;
+  transform: translateZ(0);
+}
+
+/* Disable expensive animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Specifically target blur-heavy animated elements */
+  [style*="blur"] {
+    filter: none !important;
   }
 }

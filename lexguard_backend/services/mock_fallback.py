@@ -3,6 +3,7 @@ import json
 def get_fallback_mock_response() -> dict:
     """
     Returns a perfect, realistic JSON mock response if the AI fails.
+    Uses the exact same field names as the frontend ClauseData interface.
     Guarantees the demo UI never breaks.
     """
     return {
@@ -27,7 +28,7 @@ def get_fallback_mock_response() -> dict:
         {
           "clause_id": "mock-1",
           "clause_type": "Non-Compete",
-          "severity": "Critical",
+          "severity": "critical",
           "risk_score": 9,
           "affected_party": "Employee",
           "fairness_assessment": "Highly Asymmetrical",
@@ -42,7 +43,7 @@ def get_fallback_mock_response() -> dict:
         {
           "clause_id": "mock-2",
           "clause_type": "Intellectual Property",
-          "severity": "High",
+          "severity": "high",
           "risk_score": 8,
           "affected_party": "Creator",
           "fairness_assessment": "Unfair Overreach",
