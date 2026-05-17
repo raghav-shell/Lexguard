@@ -8,8 +8,5 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
-  ],
-  "images": {
-    "formats": ["image/avif", "image/webp"]
-  }
+  ]
 }
