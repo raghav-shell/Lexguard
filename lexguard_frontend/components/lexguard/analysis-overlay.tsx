@@ -6,7 +6,8 @@ import { useEffect, useState, useRef } from "react"
 
 interface AnalysisOverlayProps {
   isVisible: boolean
-  onComplete: () => void
+  statusMessage: string
+  onComplete?: () => void // Optional now, since we control completion from parent
 }
 
 const analysisSteps = [
@@ -20,7 +21,7 @@ const analysisSteps = [
   { text: "Preparing comprehensive report...", icon: CheckCircle, color: "emerald" },
 ]
 
-export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps) {
+export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: AnalysisOverlayProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [progress, setProgress] = useState(0)
   const [displayText, setDisplayText] = useState("")
@@ -28,9 +29,9 @@ export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps)
 
   // Typing effect for status messages
   useEffect(() => {
-    if (!isVisible) return
+    if (!isVisible || !statusMessage) return
     
-    const fullText = analysisSteps[currentStep].text
+    const fullText = statusMessage
     let index = 0
     setDisplayText("")
     
@@ -41,10 +42,10 @@ export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps)
       } else {
         clearInterval(typingInterval)
       }
-    }, 30)
+    }, 20) // faster typing
 
     return () => clearInterval(typingInterval)
-  }, [currentStep, isVisible])
+  }, [statusMessage, isVisible])
 
   useEffect(() => {
     if (!isVisible) {

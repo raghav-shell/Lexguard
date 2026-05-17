@@ -24,6 +24,7 @@ class RiskBreakdown(BaseModel):
     fairness: int
 
 class AnalysisResponse(BaseModel):
+    extracted_text: str
     overall_risk_score: int
     fairness_score: int
     overall_verdict: str

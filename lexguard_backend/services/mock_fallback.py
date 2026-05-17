@@ -6,6 +6,7 @@ def get_fallback_mock_response() -> dict:
     Guarantees the demo UI never breaks.
     """
     return {
+      "extracted_text": "EMPLOYMENT AGREEMENT\n\nThis Employment Agreement (\"Agreement\") is entered into by and between the Company and the Employee.\n\n1. NON-COMPETE\nEmployee agrees not to engage in any competitive business within a 500-mile radius for a period of 3 years following termination. This includes starting a competing business, working for a competitor, or consulting for any entity in the same industry.\n\n2. INTELLECTUAL PROPERTY\nCompany retains perpetual, exclusive rights to all intellectual property created by the Employee during the term of employment, regardless of whether company resources were utilized, including side projects or inventions made on the Employee's personal time.\n\n3. TERMINATION\nCompany may terminate this Agreement at any time, with or without cause, without severance pay. Employee must provide four (4) weeks written notice prior to resignation.",
       "overall_risk_score": 85,
       "fairness_score": 25,
       "overall_verdict": "high-risk",

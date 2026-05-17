@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Upload, FileText, X, Sparkles, Cloud, Zap, CheckCircle } from "lucide-react"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { GlassButton } from "./glass-card"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,7 @@ interface UploadZoneProps {
 export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -230,18 +231,19 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                       ))}
                     </div>
 
-                    <label className="cursor-pointer">
+                    <div>
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx"
                         onChange={handleFileSelect}
                         className="hidden"
+                        ref={fileInputRef}
                       />
-                      <GlassButton variant="secondary">
+                      <GlassButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
                         <FileText className="w-4 h-4" />
                         Browse Files
                       </GlassButton>
-                    </label>
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div

@@ -1,37 +1,52 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { FileText, AlertTriangle, Shield, Clock, ArrowLeft, Download, Share2, Sparkles, Brain, Eye, Zap } from "lucide-react"
+import { FileText, AlertTriangle, Shield, Clock, ArrowLeft, Download, Share2, Sparkles, Brain, Eye, Zap, Scale } from "lucide-react"
 import { GlassCard, GlassButton } from "./glass-card"
 import { ClauseCard, type ClauseData } from "./clause-card"
 import { VerdictPanel, type VerdictLevel } from "./verdict-panel"
+import { ContractViewer } from "./contract-viewer"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
-interface AnalysisResult {
-  fileName: string
-  analyzedAt: Date
-  verdict: VerdictLevel
-  riskScore: number
+export interface BackendAnalysisResponse {
+  extracted_text: string
+  overall_risk_score: number
+  fairness_score: number
+  overall_verdict: string
   summary: string
-  clauses: ClauseData[]
-  stats: {
-    totalClauses: number
-    criticalCount: number
-    highRiskCount: number
-    mediumRiskCount: number
-    lowRiskCount: number
+  top_concerns: string[]
+  risk_breakdown: {
+    employment: number
+    privacy: number
+    financial: number
+    ip: number
+    fairness: number
   }
+  clauses: ClauseData[]
 }
 
 interface ResultsDashboardProps {
-  result: AnalysisResult
+  result: BackendAnalysisResponse & { fileName: string, analyzedAt: Date }
   onBack: () => void
 }
 
 export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
+  const [activeClauseId, setActiveClauseId] = useState<string | null>(null)
+
+  // Map verdict from backend string to VerdictLevel
+  const getVerdictLevel = (backendVerdict: string): VerdictLevel => {
+      const v = backendVerdict.toLowerCase()
+      if (v.includes("critical") || v.includes("extremely")) return "critical"
+      if (v.includes("high")) return "high-risk"
+      if (v.includes("caution") || v.includes("medium")) return "caution"
+      return "safe"
+  }
+
+  const verdictLevel = getVerdictLevel(result.overall_verdict)
+
   return (
-    <section className="relative px-6 py-12 min-h-screen">
+    <section className="relative px-4 py-8 md:px-8 md:py-12 min-h-screen">
       {/* Ambient background elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div
@@ -60,7 +75,7 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-[1600px] mx-auto relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
@@ -80,7 +95,6 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
                 whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
                 transition={{ duration: 0.5 }}
               >
-                {/* Shimmer effect */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                   animate={{ x: ["-100%", "100%"] }}
@@ -89,7 +103,7 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
                 <FileText className="w-7 h-7 text-violet-500 relative z-10" />
               </motion.div>
               <div>
-                <h1 className="text-xl font-semibold text-slate-800 truncate max-w-[300px]">
+                <h1 className="text-xl font-semibold text-slate-800 truncate max-w-[300px] md:max-w-[500px]">
                   {result.fileName}
                 </h1>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -103,7 +117,7 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
           <div className="flex items-center gap-3">
             <GlassButton variant="secondary" size="sm">
               <Share2 className="w-4 h-4" />
-              Share
+              Share Report
             </GlassButton>
             <GlassButton variant="secondary" size="sm">
               <Download className="w-4 h-4" />
@@ -112,167 +126,160 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
           </div>
         </motion.div>
 
-        {/* Stats Overview - Enhanced with animations */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10"
-        >
-          <StatCard
-            label="Total Clauses"
-            value={result.stats.totalClauses}
-            icon={FileText}
-            color="lavender"
-            delay={0}
-          />
-          <StatCard
-            label="Critical"
-            value={result.stats.criticalCount}
-            icon={AlertTriangle}
-            color="rose"
-            delay={0.1}
-          />
-          <StatCard
-            label="High Risk"
-            value={result.stats.highRiskCount}
-            icon={AlertTriangle}
-            color="amber"
-            delay={0.2}
-          />
-          <StatCard
-            label="Medium Risk"
-            value={result.stats.mediumRiskCount}
-            icon={Eye}
-            color="pink"
-            delay={0.3}
-          />
-          <StatCard
-            label="Low Risk"
-            value={result.stats.lowRiskCount}
-            icon={Shield}
-            color="emerald"
-            delay={0.4}
-          />
-        </motion.div>
-
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Verdict Panel - Sticky sidebar */}
+        {/* Main Grid Layout: Left (Contract), Right (Insights) */}
+        <div className="grid lg:grid-cols-12 gap-8">
+          
+          {/* LEFT: Contract Viewer */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="lg:col-span-1"
+            className="lg:col-span-5 h-[calc(100vh-140px)] sticky top-6"
           >
-            <div className="sticky top-6 space-y-6">
-              <VerdictPanel
-                verdict={result.verdict}
-                score={result.riskScore}
-                summary={result.summary}
-              />
-              
-              {/* Quick Actions Panel */}
-              <GlassCard className="p-5" hover={false}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-4 h-4 text-violet-500" />
-                  <span className="text-sm font-medium text-slate-700">Quick Actions</span>
-                </div>
-                <div className="space-y-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02, x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-white/50 hover:bg-white/80 border border-white/60 text-sm text-slate-600 hover:text-slate-800 transition-all flex items-center gap-3"
-                  >
-                    <Brain className="w-4 h-4 text-violet-500" />
-                    Generate Counter-Proposal
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02, x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-white/50 hover:bg-white/80 border border-white/60 text-sm text-slate-600 hover:text-slate-800 transition-all flex items-center gap-3"
-                  >
-                    <Sparkles className="w-4 h-4 text-pink-500" />
-                    AI Negotiation Tips
-                  </motion.button>
-                </div>
-              </GlassCard>
-            </div>
+             <ContractViewer 
+                extractedText={result.extracted_text} 
+                clauses={result.clauses} 
+                activeClauseId={activeClauseId}
+             />
           </motion.div>
 
-          {/* Clause Cards - Main content area */}
+          {/* RIGHT: AI Insights Dashboard */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="lg:col-span-2 space-y-6"
+             initial={{ opacity: 0, x: 30 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: 0.3, duration: 0.6 }}
+             className="lg:col-span-7 space-y-6"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <motion.div
-                  animate={{ rotate: [0, 15, -15, 0] }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                >
-                  <Sparkles className="w-5 h-5 text-violet-500" />
-                </motion.div>
-                <h2 className="text-xl font-semibold text-slate-800">
-                  Flagged Clauses
-                </h2>
-              </div>
-              <motion.span 
-                className="text-sm text-slate-400 bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                {result.clauses.length} issues found
-              </motion.span>
-            </div>
-
-            <div className="space-y-5">
-              {result.clauses.map((clause, index) => (
-                <ClauseCard
-                  key={clause.id}
-                  clause={clause}
-                  index={index}
+             {/* Scores Row */}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <VerdictPanel
+                  verdict={verdictLevel}
+                  score={result.overall_risk_score}
+                  summary={result.summary}
                 />
-              ))}
-            </div>
 
-            {/* Bottom CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="pt-8"
-            >
-              <GlassCard className="p-6 text-center" hover={false}>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Brain className="w-5 h-5 text-violet-500" />
-                  <span className="font-semibold text-slate-800">Need Help Negotiating?</span>
+                <GlassCard className="p-6 flex flex-col items-center justify-center text-center relative overflow-hidden h-full" hover={false}>
+                    {/* Background glow for fairness */}
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="absolute inset-0 bg-[radial-gradient(circle,rgba(52,211,153,0.15)_0%,transparent_70%)]"
+                    />
+                    
+                    <Scale className="w-8 h-8 text-emerald-500 mb-3 relative z-10" />
+                    <div className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 relative z-10">Contract Fairness Score</div>
+                    <div className="flex items-baseline gap-2 relative z-10">
+                        <span className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">
+                           <AnimatedNumber value={result.fairness_score} delay={0.4} />
+                        </span>
+                        <span className="text-xl text-slate-400 font-medium">/ 100</span>
+                    </div>
+                    
+                    <div className="mt-4 w-full max-w-[200px] h-2 bg-slate-100 rounded-full overflow-hidden relative z-10">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${result.fairness_score}%` }}
+                          transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
+                        />
+                    </div>
+                    
+                    <p className="mt-4 text-xs text-slate-500 relative z-10">
+                        Scores above 70 indicate a reasonably balanced agreement. Lower scores indicate severe asymmetry favoring the issuer.
+                    </p>
+                </GlassCard>
+             </div>
+
+             {/* Risk Breakdown & Top Concerns Row */}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Risk Breakdown Bars */}
+                 <GlassCard className="p-6" hover={false}>
+                     <div className="flex items-center gap-2 mb-6">
+                         <Activity className="w-5 h-5 text-violet-500" />
+                         <h3 className="font-semibold text-slate-800">Risk Breakdown</h3>
+                     </div>
+                     <div className="space-y-4">
+                        <RiskBar label="Employment" score={result.risk_breakdown.employment} color="violet" delay={0.5} />
+                        <RiskBar label="Privacy" score={result.risk_breakdown.privacy} color="cyan" delay={0.6} />
+                        <RiskBar label="Financial" score={result.risk_breakdown.financial} color="rose" delay={0.7} />
+                        <RiskBar label="Intellectual Property" score={result.risk_breakdown.ip} color="amber" delay={0.8} />
+                     </div>
+                 </GlassCard>
+
+                 {/* Top Concerns */}
+                 <GlassCard className="p-6" hover={false}>
+                     <div className="flex items-center gap-2 mb-6">
+                         <AlertTriangle className="w-5 h-5 text-rose-500" />
+                         <h3 className="font-semibold text-slate-800">Top Concerns</h3>
+                     </div>
+                     <ul className="space-y-3">
+                         {result.top_concerns.map((concern, i) => (
+                             <motion.li 
+                               key={i}
+                               initial={{ opacity: 0, x: -10 }}
+                               animate={{ opacity: 1, x: 0 }}
+                               transition={{ delay: 0.8 + (i * 0.1) }}
+                               className="flex items-start gap-3 p-3 rounded-xl bg-rose-50/50 border border-rose-100/50 text-sm text-slate-700"
+                             >
+                                 <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-rose-400 flex-shrink-0" />
+                                 {concern}
+                             </motion.li>
+                         ))}
+                     </ul>
+                 </GlassCard>
+             </div>
+
+             {/* Clause Cards Header */}
+             <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center gap-3">
+                    <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 4, repeat: Infinity }}>
+                        <Sparkles className="w-5 h-5 text-violet-500" />
+                    </motion.div>
+                    <h2 className="text-xl font-semibold text-slate-800">Flagged Clauses</h2>
                 </div>
-                <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
-                  Let our AI generate a professional counter-proposal addressing all flagged issues
-                </p>
-                <GlassButton>
-                  <Sparkles className="w-4 h-4" />
-                  Generate Counter-Proposal
-                </GlassButton>
-              </GlassCard>
-            </motion.div>
+                <span className="text-sm text-slate-400 bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50 shadow-sm">
+                    {result.clauses.length} issues found
+                </span>
+             </div>
+
+             {/* Clauses List */}
+             <div className="space-y-5">
+                 {result.clauses.map((clause, index) => (
+                    <div 
+                      key={clause.clause_id} 
+                      onMouseEnter={() => setActiveClauseId(clause.clause_id)}
+                      onMouseLeave={() => setActiveClauseId(null)}
+                    >
+                      <ClauseCard
+                        clause={clause}
+                        index={index}
+                      />
+                    </div>
+                 ))}
+             </div>
+             
+             {/* Bottom CTA */}
+             <div className="pt-8 pb-12">
+                <GlassCard className="p-6 text-center" hover={false}>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                        <Brain className="w-5 h-5 text-violet-500" />
+                        <span className="font-semibold text-slate-800">Ready to Negotiate?</span>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
+                        Let our AI generate a professional email counter-proposal addressing all flagged issues.
+                    </p>
+                    <GlassButton>
+                        <Sparkles className="w-4 h-4" />
+                        Generate Counter-Proposal
+                    </GlassButton>
+                </GlassCard>
+             </div>
           </motion.div>
+
         </div>
       </div>
     </section>
   )
-}
-
-interface StatCardProps {
-  label: string
-  value: number
-  icon: typeof FileText
-  color: "lavender" | "rose" | "amber" | "pink" | "emerald"
-  delay: number
 }
 
 function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
@@ -281,7 +288,7 @@ function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       let start = 0
-      const duration = 1000
+      const duration = 1500
       const startTime = Date.now()
 
       const animate = () => {
@@ -296,7 +303,7 @@ function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
       }
 
       requestAnimationFrame(animate)
-    }, delay * 1000 + 500)
+    }, delay * 1000)
 
     return () => clearTimeout(timer)
   }, [value, delay])
@@ -304,77 +311,29 @@ function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
   return <span>{displayValue}</span>
 }
 
-function StatCard({ label, value, icon: Icon, color, delay }: StatCardProps) {
-  const colorClasses = {
-    lavender: {
-      iconBg: "bg-gradient-to-br from-violet-100 to-violet-50",
-      iconColor: "text-violet-500",
-      glow: "rgba(168, 139, 250, 0.2)",
-    },
-    rose: {
-      iconBg: "bg-gradient-to-br from-rose-100 to-rose-50",
-      iconColor: "text-rose-500",
-      glow: "rgba(251, 113, 133, 0.2)",
-    },
-    amber: {
-      iconBg: "bg-gradient-to-br from-amber-100 to-amber-50",
-      iconColor: "text-amber-500",
-      glow: "rgba(251, 191, 36, 0.2)",
-    },
-    pink: {
-      iconBg: "bg-gradient-to-br from-pink-100 to-pink-50",
-      iconColor: "text-pink-500",
-      glow: "rgba(244, 114, 182, 0.2)",
-    },
-    emerald: {
-      iconBg: "bg-gradient-to-br from-emerald-100 to-emerald-50",
-      iconColor: "text-emerald-500",
-      glow: "rgba(52, 211, 153, 0.2)",
-    },
-  }
+function RiskBar({ label, score, color, delay }: { label: string, score: number, color: string, delay: number }) {
+   const colorMap: Record<string, string> = {
+       violet: "from-violet-400 to-purple-500",
+       cyan: "from-cyan-400 to-blue-500",
+       rose: "from-rose-400 to-pink-500",
+       amber: "from-amber-400 to-orange-500"
+   }
+   const gradient = colorMap[color] || colorMap.violet
 
-  const classes = colorClasses[color]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 25, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-      whileHover={{ y: -4, scale: 1.02 }}
-    >
-      <GlassCard className="p-4 relative overflow-hidden" hover={false}>
-        {/* Ambient glow */}
-        <motion.div
-          animate={{ opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
-          className="absolute -top-10 -right-10 w-20 h-20 rounded-full pointer-events-none"
-          style={{
-            background: `radial-gradient(circle, ${classes.glow} 0%, transparent 70%)`,
-            filter: 'blur(15px)',
-          }}
-        />
-
-        <div className="flex items-center gap-3 relative z-10">
-          <motion.div 
-            className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center relative",
-              classes.iconBg
-            )}
-            whileHover={{ rotate: [0, -5, 5, 0] }}
-            transition={{ duration: 0.4 }}
-          >
-            <Icon className={cn("w-5 h-5", classes.iconColor)} />
-          </motion.div>
-          <div>
-            <motion.div 
-              className="text-2xl font-bold text-slate-800"
-            >
-              <AnimatedNumber value={value} delay={delay} />
-            </motion.div>
-            <div className="text-xs text-slate-400 font-medium">{label}</div>
-          </div>
-        </div>
-      </GlassCard>
-    </motion.div>
-  )
+   return (
+       <div className="space-y-1.5">
+           <div className="flex justify-between text-xs font-medium">
+               <span className="text-slate-600">{label}</span>
+               <span className="text-slate-400">{score}/100</span>
+           </div>
+           <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+               <motion.div 
+                  className={`h-full bg-gradient-to-r ${gradient} rounded-full`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${score}%` }}
+                  transition={{ duration: 1, delay, ease: "easeOut" }}
+               />
+           </div>
+       </div>
+   )
 }

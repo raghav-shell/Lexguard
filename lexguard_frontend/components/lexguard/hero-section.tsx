@@ -1,9 +1,9 @@
 "use client"
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
+import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion"
 import { Shield, Sparkles, ArrowRight, Play, FileSearch, Brain, Zap, Eye } from "lucide-react"
 import { GlassButton } from "./glass-card"
-import { useRef, useState, useEffect } from "react"
+import { useRef, useEffect } from "react"
 
 interface HeroSectionProps {
   onUploadClick: () => void
@@ -31,7 +31,11 @@ const floatingPanels = [
 
 export function HeroSection({ onUploadClick }: HeroSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const smoothMouseX = useSpring(mouseX, { damping: 50, stiffness: 400 })
+  const smoothMouseY = useSpring(mouseY, { damping: 50, stiffness: 400 })
   
   // Magnetic button effect
   const buttonRef = useRef<HTMLDivElement>(null)
@@ -45,16 +49,16 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
     const handleMouseMove = (e: MouseEvent) => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect()
-        setMousePosition({
-          x: (e.clientX - rect.left) / rect.width - 0.5,
-          y: (e.clientY - rect.top) / rect.height - 0.5,
-        })
+        const x = (e.clientX - rect.left) / rect.width - 0.5
+        const y = (e.clientY - rect.top) / rect.height - 0.5
+        mouseX.set(x * 3)
+        mouseY.set(y * -3)
       }
     }
 
     window.addEventListener("mousemove", handleMouseMove)
     return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [])
+  }, [mouseX, mouseY])
 
   const handleButtonMouseMove = (e: React.MouseEvent) => {
     if (buttonRef.current) {
@@ -153,9 +157,6 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
                   animate="visible"
                   variants={letterVariants}
                   className="inline-block animate-shimmer-text"
-                  style={{
-                    textShadow: '0 0 40px rgba(168, 139, 250, 0.3)'
-                  }}
                 >
                   {letter}
                 </motion.span>
@@ -238,8 +239,7 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
           <motion.div 
             className="relative rounded-3xl overflow-hidden bg-white/60 backdrop-blur-2xl border border-white/50 shadow-[0_8px_60px_rgba(168,139,250,0.15)] p-8"
             style={{
-              transform: `perspective(1000px) rotateX(${mousePosition.y * -3}deg) rotateY(${mousePosition.x * 3}deg)`,
-              transition: 'transform 0.3s ease-out',
+              transform: useMotionTemplate`perspective(1000px) rotateX(${smoothMouseY}deg) rotateY(${smoothMouseX}deg)`,
             }}
           >
             {/* Animated scanning overlay */}

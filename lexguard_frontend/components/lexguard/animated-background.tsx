@@ -1,13 +1,12 @@
 "use client"
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
-import { useEffect, useState, useRef } from "react"
+import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion"
+import { useEffect, useRef } from "react"
 
 export function AnimatedBackground() {
-  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 })
   const containerRef = useRef<HTMLDivElement>(null)
   
-  // Smooth mouse tracking
+  // Smooth mouse tracking without triggering React state re-renders
   const mouseX = useMotionValue(50)
   const mouseY = useMotionValue(50)
   const smoothX = useSpring(mouseX, { damping: 50, stiffness: 100 })
@@ -19,7 +18,6 @@ export function AnimatedBackground() {
       const y = (e.clientY / window.innerHeight) * 100
       mouseX.set(x)
       mouseY.set(y)
-      setMousePosition({ x, y })
     }
 
     window.addEventListener("mousemove", handleMouseMove)
@@ -40,8 +38,8 @@ export function AnimatedBackground() {
       <motion.div 
         className="absolute inset-0 opacity-80"
         style={{
-          background: `
-            radial-gradient(ellipse 80% 60% at ${mousePosition.x}% ${mousePosition.y}%, rgba(168, 139, 250, 0.2), transparent 50%),
+          background: useMotionTemplate`
+            radial-gradient(ellipse 80% 60% at ${smoothX}% ${smoothY}%, rgba(168, 139, 250, 0.2), transparent 50%),
             radial-gradient(ellipse 60% 50% at 80% 20%, rgba(244, 114, 182, 0.15), transparent 50%),
             radial-gradient(ellipse 50% 40% at 20% 80%, rgba(34, 211, 238, 0.12), transparent 50%),
             radial-gradient(ellipse 70% 50% at 70% 70%, rgba(251, 191, 36, 0.08), transparent 50%),
@@ -57,7 +55,6 @@ export function AnimatedBackground() {
           top: '5%',
           left: '10%',
           background: 'radial-gradient(circle, rgba(196, 181, 253, 0.35) 0%, rgba(196, 181, 253, 0) 70%)',
-          filter: 'blur(80px)',
         }}
       />
       
@@ -76,7 +73,6 @@ export function AnimatedBackground() {
           top: '30%',
           right: '5%',
           background: 'radial-gradient(circle, rgba(244, 114, 182, 0.3) 0%, rgba(244, 114, 182, 0) 70%)',
-          filter: 'blur(100px)',
         }}
       />
       
@@ -96,7 +92,6 @@ export function AnimatedBackground() {
           bottom: '5%',
           left: '25%',
           background: 'radial-gradient(circle, rgba(34, 211, 238, 0.25) 0%, rgba(34, 211, 238, 0) 70%)',
-          filter: 'blur(90px)',
         }}
       />
 
@@ -115,7 +110,6 @@ export function AnimatedBackground() {
           top: '60%',
           left: '0%',
           background: 'radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, rgba(251, 191, 36, 0) 70%)',
-          filter: 'blur(70px)',
         }}
       />
 
@@ -134,7 +128,6 @@ export function AnimatedBackground() {
           top: '0%',
           right: '20%',
           background: 'radial-gradient(circle, rgba(52, 211, 153, 0.2) 0%, rgba(52, 211, 153, 0) 70%)',
-          filter: 'blur(60px)',
         }}
       />
 
@@ -201,7 +194,6 @@ export function AnimatedBackground() {
                 : i % 4 === 2
                   ? 'rgba(34, 211, 238, 0.4)'
                   : 'rgba(52, 211, 153, 0.35)',
-            filter: 'blur(1px)',
             boxShadow: i % 3 === 0 ? '0 0 10px rgba(168, 139, 250, 0.5)' : 'none',
           }}
         />

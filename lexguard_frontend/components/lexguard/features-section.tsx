@@ -120,7 +120,6 @@ export function FeaturesSection() {
           className="absolute top-20 left-10 w-[400px] h-[400px] rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(168, 139, 250, 0.2) 0%, transparent 70%)',
-            filter: 'blur(60px)',
           }}
         />
         <motion.div
@@ -132,7 +131,6 @@ export function FeaturesSection() {
           className="absolute bottom-20 right-10 w-[500px] h-[500px] rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(244, 114, 182, 0.2) 0%, transparent 70%)',
-            filter: 'blur(80px)',
           }}
         />
       </motion.div>
@@ -204,7 +202,6 @@ export function FeaturesSection() {
                     className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     style={{
                       background: `radial-gradient(circle, ${colors.glowColor} 0%, transparent 70%)`,
-                      filter: 'blur(20px)',
                     }}
                   />
 
@@ -225,7 +222,6 @@ export function FeaturesSection() {
                           className="absolute inset-0 rounded-2xl"
                           style={{
                             background: `radial-gradient(circle, ${colors.glowColor} 0%, transparent 70%)`,
-                            filter: 'blur(8px)',
                           }}
                         />
                         <Icon className={cn("w-7 h-7 relative z-10", colors.iconColor)} />

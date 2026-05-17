@@ -66,6 +66,9 @@ async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile =
         # 5. Risk Synthesis
         final_json = await build_final_analysis(agent_clauses)
         
+        # 6. Inject raw extracted text for Contract Viewer
+        final_json["extracted_text"] = text
+        
         analysis_status["stage"] = "Complete"
         return final_json
 
