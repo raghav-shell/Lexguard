@@ -1,9 +1,10 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { AlertTriangle, Shield, Scale, FileWarning, Gavel, Ban, Info, ChevronRight, ExternalLink } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { AlertTriangle, Shield, Scale, FileWarning, Gavel, Ban, Info, ChevronDown, Sparkles, Lightbulb } from "lucide-react"
 import { GlassCard } from "./glass-card"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 export type ClauseSeverity = "low" | "medium" | "high" | "critical"
 
@@ -31,40 +32,48 @@ const severityConfig = {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     text: "text-emerald-600",
-    iconBg: "bg-emerald-100",
+    iconBg: "bg-gradient-to-br from-emerald-100 to-emerald-50",
     glow: "emerald",
+    glowShadow: "shadow-[0_0_20px_rgba(52,211,153,0.2)]",
     label: "Low Risk",
     icon: Shield,
+    pulseColor: "rgba(52, 211, 153, 0.5)",
   },
   medium: {
     color: "amber",
     bg: "bg-amber-50",
     border: "border-amber-200",
     text: "text-amber-600",
-    iconBg: "bg-amber-100",
+    iconBg: "bg-gradient-to-br from-amber-100 to-amber-50",
     glow: "amber",
+    glowShadow: "shadow-[0_0_20px_rgba(251,191,36,0.2)]",
     label: "Medium Risk",
     icon: Info,
+    pulseColor: "rgba(251, 191, 36, 0.5)",
   },
   high: {
     color: "rose",
     bg: "bg-rose-50",
     border: "border-rose-200",
     text: "text-rose-600",
-    iconBg: "bg-rose-100",
+    iconBg: "bg-gradient-to-br from-rose-100 to-rose-50",
     glow: "rose",
+    glowShadow: "shadow-[0_0_20px_rgba(251,113,133,0.25)]",
     label: "High Risk",
     icon: AlertTriangle,
+    pulseColor: "rgba(251, 113, 133, 0.5)",
   },
   critical: {
     color: "rose",
     bg: "bg-rose-100",
     border: "border-rose-300",
     text: "text-rose-700",
-    iconBg: "bg-rose-200",
+    iconBg: "bg-gradient-to-br from-rose-200 to-rose-100",
     glow: "rose",
-    label: "Critical Risk",
+    glowShadow: "shadow-[0_0_30px_rgba(251,113,133,0.35)]",
+    label: "Critical",
     icon: Ban,
+    pulseColor: "rgba(251, 113, 133, 0.6)",
   },
 }
 
@@ -79,17 +88,18 @@ const clauseIcons: Record<string, typeof AlertTriangle> = {
   default: Info,
 }
 
-export function ClauseCard({ clause, index, onClick, isExpanded }: ClauseCardProps) {
+export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const config = severityConfig[clause.severity]
   const Icon = clauseIcons[clause.type.toLowerCase()] || clauseIcons.default
   const SeverityIcon = config.icon
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      initial={{ opacity: 0, y: 30, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
-        duration: 0.5, 
+        duration: 0.6, 
         delay: index * 0.1,
         ease: [0.23, 1, 0.32, 1]
       }}
@@ -97,26 +107,51 @@ export function ClauseCard({ clause, index, onClick, isExpanded }: ClauseCardPro
       <GlassCard
         glowColor={config.glow as "emerald" | "amber" | "rose"}
         delay={0}
-        className="cursor-pointer group overflow-hidden"
+        className={cn("cursor-pointer group overflow-hidden", config.glowShadow)}
+        tilt
       >
+        {/* Ambient glow based on severity */}
         <motion.div
-          onClick={onClick}
-          className="p-6"
-          whileHover={{ scale: 1.005 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          animate={{
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute -top-20 -right-20 w-40 h-40 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
+            filter: 'blur(30px)',
+          }}
+        />
+
+        <motion.div
+          onClick={() => {
+            setIsExpanded(!isExpanded)
+            onClick?.()
+          }}
+          className="p-6 relative"
         >
           {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-4">
               <motion.div 
                 className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center",
+                  "w-14 h-14 rounded-2xl flex items-center justify-center relative",
                   config.iconBg
                 )}
-                whileHover={{ rotate: [0, -5, 5, 0] }}
+                whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
                 transition={{ duration: 0.5 }}
               >
-                <Icon className={cn("w-6 h-6", config.text)} />
+                {/* Icon glow */}
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 rounded-2xl"
+                  style={{
+                    background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
+                    filter: 'blur(8px)',
+                  }}
+                />
+                <Icon className={cn("w-7 h-7 relative z-10", config.text)} />
               </motion.div>
               <div>
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-medium">
@@ -128,14 +163,22 @@ export function ClauseCard({ clause, index, onClick, isExpanded }: ClauseCardPro
               </div>
             </div>
             
-            {/* Severity badge */}
+            {/* Severity badge with pulse */}
             <motion.div 
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border",
+                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border relative overflow-hidden",
                 config.bg, config.border, config.text
               )}
               whileHover={{ scale: 1.05 }}
             >
+              {/* Pulse ring for critical */}
+              {clause.severity === 'critical' && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl border-2 border-rose-400"
+                  animate={{ scale: [1, 1.2], opacity: [0.5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
               <SeverityIcon className="w-3.5 h-3.5" />
               {config.label}
             </motion.div>
@@ -146,42 +189,96 @@ export function ClauseCard({ clause, index, onClick, isExpanded }: ClauseCardPro
             {clause.explanation}
           </p>
 
-          {/* Consequence */}
-          <div className="mb-5 p-4 rounded-2xl bg-slate-50/80 border border-slate-100">
+          {/* Consequence - with animated border */}
+          <motion.div 
+            className="mb-5 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 relative overflow-hidden"
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
             <div className="text-xs text-slate-400 uppercase tracking-wider mb-2 font-medium flex items-center gap-2">
-              <AlertTriangle className="w-3.5 h-3.5" />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              </motion.div>
               Real-World Impact
             </div>
             <p className="text-slate-700 text-sm leading-relaxed">
               {clause.consequence}
             </p>
-          </div>
+          </motion.div>
 
-          {/* Recommendation */}
-          <div className={cn(
-            "p-4 rounded-2xl border",
-            config.bg, config.border
-          )}>
-            <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-medium flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5" />
-              Negotiation Recommendation
+          {/* Recommendation - with glow effect */}
+          <motion.div 
+            className={cn(
+              "p-4 rounded-2xl border relative overflow-hidden",
+              config.bg, config.border
+            )}
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            {/* Subtle animated gradient */}
+            <motion.div
+              className="absolute inset-0 opacity-30"
+              animate={{
+                background: [
+                  `linear-gradient(45deg, ${config.pulseColor}, transparent)`,
+                  `linear-gradient(225deg, ${config.pulseColor}, transparent)`,
+                  `linear-gradient(45deg, ${config.pulseColor}, transparent)`,
+                ]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+            
+            <div className="relative z-10">
+              <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-medium flex items-center gap-2">
+                <Lightbulb className="w-3.5 h-3.5 text-violet-500" />
+                Negotiation Recommendation
+              </div>
+              <p className={cn("text-sm font-medium leading-relaxed", config.text)}>
+                {clause.recommendation}
+              </p>
             </div>
-            <p className={cn("text-sm font-medium leading-relaxed", config.text)}>
-              {clause.recommendation}
-            </p>
-          </div>
+          </motion.div>
 
           {/* Expand indicator */}
           <motion.div 
-            className="flex items-center justify-end mt-5 text-slate-400 group-hover:text-violet-500 transition-colors"
-            whileHover={{ x: 3 }}
+            className="flex items-center justify-center mt-5 pt-4 border-t border-slate-100"
           >
-            <span className="text-xs mr-2 font-medium">View Original Clause</span>
-            <ChevronRight className={cn(
-              "w-4 h-4 transition-transform",
-              isExpanded && "rotate-90"
-            )} />
+            <motion.button
+              className="flex items-center gap-2 text-slate-400 hover:text-violet-500 transition-colors text-sm font-medium"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{isExpanded ? "Hide Details" : "View Original Clause"}</span>
+              <motion.div
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </motion.div>
+            </motion.button>
           </motion.div>
+
+          {/* Expandable original text */}
+          <AnimatePresence>
+            {isExpanded && clause.originalText && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs leading-relaxed">
+                  <div className="text-slate-500 mb-2">// Original Contract Text</div>
+                  {clause.originalText}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </GlassCard>
     </motion.div>

@@ -1,8 +1,8 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, FileSearch, AlertTriangle, Shield, CheckCircle, Brain } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Sparkles, FileSearch, AlertTriangle, Shield, CheckCircle, Brain, Zap, Eye, Scale, Lock } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
 
 interface AnalysisOverlayProps {
   isVisible: boolean
@@ -10,17 +10,41 @@ interface AnalysisOverlayProps {
 }
 
 const analysisSteps = [
-  { text: "Parsing contract structure...", icon: FileSearch },
-  { text: "Analyzing liability exposure...", icon: AlertTriangle },
-  { text: "Evaluating arbitration fairness...", icon: Shield },
-  { text: "Detecting exploitative clauses...", icon: AlertTriangle },
-  { text: "Generating negotiation insights...", icon: Sparkles },
-  { text: "Preparing comprehensive report...", icon: CheckCircle },
+  { text: "Parsing contract structure...", icon: FileSearch, color: "violet" },
+  { text: "Scanning liability exposure...", icon: AlertTriangle, color: "rose" },
+  { text: "Evaluating arbitration fairness...", icon: Scale, color: "amber" },
+  { text: "Detecting exploitative clauses...", icon: Eye, color: "pink" },
+  { text: "Analyzing intellectual property transfer...", icon: Lock, color: "cyan" },
+  { text: "Assessing contract fairness score...", icon: Zap, color: "emerald" },
+  { text: "Generating negotiation insights...", icon: Sparkles, color: "violet" },
+  { text: "Preparing comprehensive report...", icon: CheckCircle, color: "emerald" },
 ]
 
 export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [displayText, setDisplayText] = useState("")
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Typing effect for status messages
+  useEffect(() => {
+    if (!isVisible) return
+    
+    const fullText = analysisSteps[currentStep].text
+    let index = 0
+    setDisplayText("")
+    
+    const typingInterval = setInterval(() => {
+      if (index < fullText.length) {
+        setDisplayText(fullText.slice(0, index + 1))
+        index++
+      } else {
+        clearInterval(typingInterval)
+      }
+    }, 30)
+
+    return () => clearInterval(typingInterval)
+  }, [currentStep, isVisible])
 
   useEffect(() => {
     if (!isVisible) {
@@ -29,7 +53,7 @@ export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps)
       return
     }
 
-    const stepDuration = 1200
+    const stepDuration = 900
     const totalSteps = analysisSteps.length
 
     const stepInterval = setInterval(() => {
@@ -47,7 +71,7 @@ export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps)
         if (newProgress >= 100) {
           clearInterval(progressInterval)
           clearInterval(stepInterval)
-          setTimeout(onComplete, 500)
+          setTimeout(onComplete, 600)
           return 100
         }
         return newProgress
@@ -64,235 +88,406 @@ export function AnalysisOverlay({ isVisible, onComplete }: AnalysisOverlayProps)
     <AnimatePresence>
       {isVisible && (
         <motion.div
+          ref={containerRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center"
         >
-          {/* Frosted backdrop */}
+          {/* Premium frosted backdrop */}
           <motion.div 
-            className="absolute inset-0 backdrop-blur-2xl"
+            className="absolute inset-0 backdrop-blur-3xl"
             style={{
-              background: 'linear-gradient(135deg, rgba(250, 249, 255, 0.95) 0%, rgba(245, 243, 255, 0.95) 50%, rgba(253, 242, 248, 0.95) 100%)'
+              background: 'linear-gradient(135deg, rgba(250, 249, 255, 0.97) 0%, rgba(245, 243, 255, 0.97) 50%, rgba(253, 242, 248, 0.97) 100%)'
             }}
           />
 
-          {/* Animated gradient orbs */}
-          <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.4, 0.6, 0.4],
-              x: [0, 50, 0],
-              y: [0, -30, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className="absolute w-[500px] h-[500px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(168, 139, 250, 0.4) 0%, transparent 70%)',
-              filter: 'blur(80px)',
-              left: '20%',
-              top: '20%',
-            }}
-          />
+          {/* Animated gradient mesh background */}
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Large breathing gradient orbs */}
+            <motion.div
+              animate={{
+                scale: [1, 1.4, 1],
+                opacity: [0.3, 0.5, 0.3],
+                x: [0, 100, 0],
+                y: [0, -50, 0],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute w-[600px] h-[600px] rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(168, 139, 250, 0.4) 0%, transparent 70%)',
+                filter: 'blur(100px)',
+                left: '10%',
+                top: '10%',
+              }}
+            />
 
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-              x: [0, -40, 0],
-              y: [0, 40, 0],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.5
-            }}
-            className="absolute w-[400px] h-[400px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(244, 114, 182, 0.35) 0%, transparent 70%)',
-              filter: 'blur(70px)',
-              right: '15%',
-              bottom: '25%',
-            }}
-          />
+            <motion.div
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.25, 0.45, 0.25],
+                x: [0, -80, 0],
+                y: [0, 60, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5
+              }}
+              className="absolute w-[500px] h-[500px] rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(244, 114, 182, 0.35) 0%, transparent 70%)',
+                filter: 'blur(80px)',
+                right: '10%',
+                bottom: '20%',
+              }}
+            />
 
-          {/* Scanning light effect */}
+            <motion.div
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.2, 0.4, 0.2],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1
+              }}
+              className="absolute w-[400px] h-[400px] rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(34, 211, 238, 0.3) 0%, transparent 70%)',
+                filter: 'blur(70px)',
+                left: '30%',
+                bottom: '10%',
+              }}
+            />
+          </div>
+
+          {/* Scanning light sweeps */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <motion.div
                 key={i}
                 animate={{ y: ["-100%", "200%"] }}
                 transition={{
-                  duration: 3,
+                  duration: 2.5,
                   repeat: Infinity,
-                  delay: i * 1,
+                  delay: i * 0.6,
                   ease: "linear"
                 }}
-                className="absolute inset-x-0 h-40"
+                className="absolute inset-x-0 h-48"
                 style={{
-                  background: `linear-gradient(to bottom, transparent, rgba(168, 139, 250, ${0.08 - i * 0.02}), transparent)`
+                  background: `linear-gradient(to bottom, transparent, rgba(168, 139, 250, ${0.1 - i * 0.02}), transparent)`
                 }}
               />
             ))}
+            
+            {/* Horizontal scan sweep */}
+            <motion.div
+              animate={{ x: ["-100%", "200%"] }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              className="absolute top-1/2 -translate-y-1/2 w-64 h-full"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(168, 139, 250, 0.08), transparent)',
+                transform: 'skewX(-15deg)',
+              }}
+            />
           </div>
 
-          {/* Floating particles */}
-          {[...Array(20)].map((_, i) => (
+          {/* Floating neural particles */}
+          {[...Array(30)].map((_, i) => (
             <motion.div
               key={i}
               animate={{
-                y: [0, -window.innerHeight],
-                opacity: [0, 1, 0],
+                y: [0, -window.innerHeight * 1.2],
+                opacity: [0, 0.8, 0.8, 0],
+                scale: [0.5, 1, 1, 0.5],
+                rotate: [0, 180, 360],
               }}
               transition={{
-                duration: 4 + Math.random() * 2,
+                duration: 4 + Math.random() * 3,
                 repeat: Infinity,
-                delay: i * 0.2,
+                delay: i * 0.15,
                 ease: "linear"
               }}
               className="absolute rounded-full"
               style={{
-                width: 3 + Math.random() * 4,
-                height: 3 + Math.random() * 4,
+                width: 3 + Math.random() * 5,
+                height: 3 + Math.random() * 5,
                 left: `${Math.random() * 100}%`,
                 bottom: -20,
-                background: i % 3 === 0 
-                  ? 'rgba(168, 139, 250, 0.6)' 
-                  : i % 3 === 1
-                    ? 'rgba(244, 114, 182, 0.5)'
-                    : 'rgba(34, 211, 238, 0.5)',
+                background: i % 4 === 0 
+                  ? 'rgba(168, 139, 250, 0.7)' 
+                  : i % 4 === 1
+                    ? 'rgba(244, 114, 182, 0.6)'
+                    : i % 4 === 2
+                      ? 'rgba(34, 211, 238, 0.6)'
+                      : 'rgba(52, 211, 153, 0.5)',
+                boxShadow: `0 0 ${8 + i % 5}px ${
+                  i % 4 === 0 ? 'rgba(168, 139, 250, 0.5)' :
+                  i % 4 === 1 ? 'rgba(244, 114, 182, 0.4)' :
+                  i % 4 === 2 ? 'rgba(34, 211, 238, 0.4)' :
+                  'rgba(52, 211, 153, 0.4)'
+                }`,
               }}
             />
           ))}
 
-          {/* Content */}
+          {/* Main content */}
           <motion.div 
-            className="relative z-10 text-center max-w-lg px-6"
+            className="relative z-10 text-center max-w-xl px-6"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
           >
-            {/* AI Icon with breathing glow */}
-            <motion.div
-              className="relative w-28 h-28 mx-auto mb-10"
-            >
-              {/* Outer glow rings */}
+            {/* AI Core Animation - The centerpiece */}
+            <motion.div className="relative w-36 h-36 mx-auto mb-12">
+              {/* Outer energy rings */}
+              {[...Array(4)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute inset-0 rounded-full border-2"
+                  style={{
+                    borderColor: `rgba(168, 139, 250, ${0.2 - i * 0.04})`,
+                    transform: `scale(${1 + i * 0.3})`,
+                  }}
+                  animate={{
+                    scale: [1 + i * 0.3, 1.2 + i * 0.3, 1 + i * 0.3],
+                    opacity: [0.3, 0.6, 0.3],
+                    rotate: i % 2 === 0 ? [0, 360] : [360, 0],
+                  }}
+                  transition={{
+                    duration: 4 + i,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                />
+              ))}
+              
+              {/* Pulsing glow background */}
               <motion.div
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.2, 0.4, 0.2],
+                  scale: [1, 1.3, 1],
+                  opacity: [0.3, 0.5, 0.3],
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-400/30 to-pink-400/30"
-                style={{ filter: 'blur(20px)' }}
-              />
-              <motion.div
-                animate={{
-                  scale: [1.1, 1.3, 1.1],
-                  opacity: [0.1, 0.3, 0.1],
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, rgba(168, 139, 250, 0.4) 0%, transparent 70%)',
+                  filter: 'blur(25px)',
                 }}
-                transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
-                className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-400/20 to-cyan-400/20"
-                style={{ filter: 'blur(30px)' }}
               />
               
-              {/* Main icon container */}
+              {/* Inner glowing core */}
               <motion.div
                 animate={{
-                  scale: [1, 1.05, 1],
+                  scale: [1, 1.08, 1],
                 }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="relative w-28 h-28 rounded-3xl bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100 flex items-center justify-center border border-white/60 shadow-[0_8px_40px_rgba(168,139,250,0.3)]"
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute inset-4 rounded-3xl bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100 flex items-center justify-center border border-white/60 shadow-[0_8px_50px_rgba(168,139,250,0.35)]"
               >
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                 >
-                  <Brain className="w-12 h-12 text-violet-500" />
+                  <Brain className="w-14 h-14 text-violet-500" />
                 </motion.div>
               </motion.div>
+
+              {/* Orbiting particles */}
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-3 h-3 rounded-full"
+                  style={{
+                    background: i % 2 === 0 
+                      ? 'linear-gradient(135deg, #a78bfa, #c4b5fd)' 
+                      : 'linear-gradient(135deg, #f472b6, #fb7185)',
+                    boxShadow: i % 2 === 0 
+                      ? '0 0 12px rgba(168, 139, 250, 0.6)' 
+                      : '0 0 12px rgba(244, 114, 182, 0.6)',
+                    left: '50%',
+                    top: '50%',
+                    marginLeft: -6,
+                    marginTop: -6,
+                  }}
+                  animate={{
+                    rotate: [i * 60, i * 60 + 360],
+                  }}
+                  transition={{
+                    duration: 6 + i,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  <motion.div
+                    style={{
+                      position: 'absolute',
+                      left: 60 + i * 8,
+                    }}
+                    className="w-3 h-3 rounded-full"
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.8, 1, 0.8],
+                    }}
+                    transition={{
+                      duration: 1 + i * 0.2,
+                      repeat: Infinity,
+                    }}
+                  />
+                </motion.div>
+              ))}
             </motion.div>
 
             {/* Title */}
             <motion.h2
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-3xl font-bold text-slate-800 mb-3"
+              className="text-3xl md:text-4xl font-bold text-slate-800 mb-4"
             >
               Analyzing Your Contract
             </motion.h2>
 
-            {/* Current step */}
-            <div className="h-10 mb-8">
+            {/* Animated status message with typing effect */}
+            <div className="h-12 mb-10 flex items-center justify-center">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentStep}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                  className="flex items-center justify-center gap-3 text-slate-500"
+                  initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -20, filter: "blur(4px)" }}
+                  transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                  className="flex items-center justify-center gap-3"
                 >
                   {(() => {
-                    const Icon = analysisSteps[currentStep].icon
+                    const step = analysisSteps[currentStep]
+                    const Icon = step.icon
+                    const colorClass = 
+                      step.color === 'violet' ? 'text-violet-500' :
+                      step.color === 'rose' ? 'text-rose-500' :
+                      step.color === 'amber' ? 'text-amber-500' :
+                      step.color === 'pink' ? 'text-pink-500' :
+                      step.color === 'cyan' ? 'text-cyan-500' :
+                      'text-emerald-500'
+                    
                     return (
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <Icon className="w-5 h-5 text-violet-500" />
-                      </motion.div>
+                      <>
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                          transition={{ duration: 0.6 }}
+                        >
+                          <Icon className={`w-5 h-5 ${colorClass}`} />
+                        </motion.div>
+                        <span className="text-lg text-slate-600">
+                          {displayText}
+                          <motion.span
+                            animate={{ opacity: [1, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
+                            className="inline-block w-0.5 h-5 bg-violet-400 ml-0.5 align-middle"
+                          />
+                        </span>
+                      </>
                     )
                   })()}
-                  <span className="text-lg">{analysisSteps[currentStep].text}</span>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            {/* Progress bar */}
-            <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden mb-4 shadow-inner">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full"
-                initial={{ width: "0%" }}
-                animate={{ width: `${progress}%` }}
-                transition={{ ease: "linear" }}
-              />
+            {/* Premium progress bar */}
+            <div className="relative mb-6">
+              <div className="relative h-3 rounded-full bg-slate-100/80 overflow-hidden shadow-inner">
+                {/* Animated gradient progress */}
+                <motion.div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{
+                    background: 'linear-gradient(90deg, #a78bfa, #c084fc, #f472b6, #fb7185)',
+                    backgroundSize: '200% 100%',
+                  }}
+                  animate={{
+                    width: `${progress}%`,
+                    backgroundPosition: ['0% 0%', '100% 0%'],
+                  }}
+                  transition={{
+                    width: { ease: "linear" },
+                    backgroundPosition: { duration: 2, repeat: Infinity, ease: "linear" }
+                  }}
+                />
+                
+                {/* Multiple shimmer layers */}
+                <motion.div
+                  animate={{ x: ["-150%", "250%"] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                />
+                <motion.div
+                  animate={{ x: ["-150%", "250%"] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "linear", delay: 0.4 }}
+                  className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                />
+              </div>
               
-              {/* Shimmer effect */}
+              {/* Glow effect under progress */}
               <motion.div
-                animate={{ x: ["-100%", "200%"] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                className="absolute -bottom-2 left-0 h-4 rounded-full"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, rgba(168, 139, 250, 0.3), rgba(244, 114, 182, 0.3))',
+                  filter: 'blur(8px)',
+                }}
               />
             </div>
 
-            {/* Progress percentage */}
+            {/* Progress percentage with animation */}
             <motion.div 
-              className="text-sm text-slate-400 mb-8"
-              key={progress}
+              className="text-sm text-slate-400 mb-10"
             >
-              <span className="font-medium text-violet-500">{progress}%</span> Complete
+              <motion.span 
+                className="font-bold text-lg text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-pink-500"
+                key={progress}
+              >
+                {progress}%
+              </motion.span>
+              <span className="ml-2">Complete</span>
             </motion.div>
 
-            {/* Step indicators */}
+            {/* Step indicators with active glow */}
             <div className="flex justify-center gap-2">
               {analysisSteps.map((_, index) => (
                 <motion.div
                   key={index}
-                  className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
-                    index <= currentStep 
-                      ? "bg-gradient-to-r from-violet-500 to-pink-500 shadow-[0_0_8px_rgba(168,139,250,0.5)]" 
-                      : "bg-slate-200"
-                  }`}
-                  animate={index === currentStep ? { scale: [1, 1.4, 1] } : {}}
-                  transition={{ duration: 0.5 }}
-                />
+                  className="relative"
+                >
+                  {/* Glow behind active step */}
+                  {index === currentStep && (
+                    <motion.div
+                      layoutId="stepGlow"
+                      className="absolute inset-0 rounded-full bg-violet-400"
+                      style={{ filter: 'blur(6px)' }}
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.8, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                  )}
+                  <motion.div
+                    className={`relative w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+                      index <= currentStep 
+                        ? "bg-gradient-to-r from-violet-500 to-pink-500" 
+                        : "bg-slate-200"
+                    }`}
+                    animate={index === currentStep ? { scale: [1, 1.3, 1] } : {}}
+                    transition={{ duration: 0.5, repeat: index === currentStep ? Infinity : 0 }}
+                  />
+                </motion.div>
               ))}
             </div>
           </motion.div>

@@ -1,47 +1,85 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
+import { useEffect, useState, useRef } from "react"
 
 export function AnimatedBackground() {
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 })
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Smooth mouse tracking
+  const mouseX = useMotionValue(50)
+  const mouseY = useMotionValue(50)
+  const smoothX = useSpring(mouseX, { damping: 50, stiffness: 100 })
+  const smoothY = useSpring(mouseY, { damping: 50, stiffness: 100 })
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100,
-      })
+      const x = (e.clientX / window.innerWidth) * 100
+      const y = (e.clientY / window.innerHeight) * 100
+      mouseX.set(x)
+      mouseY.set(y)
+      setMousePosition({ x, y })
     }
 
     window.addEventListener("mousemove", handleMouseMove)
     return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [])
+  }, [mouseX, mouseY])
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Base warm white gradient */}
+    <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Base gradient - warm and inviting */}
       <div 
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(135deg, #faf9ff 0%, #f5f3ff 30%, #fdf2f8 60%, #f0fdfa 100%)'
+          background: 'linear-gradient(135deg, #faf9ff 0%, #f5f3ff 25%, #fdf2f8 50%, #f0fdfa 75%, #fef3c7 100%)'
         }}
       />
       
-      {/* Animated mesh gradient that follows mouse */}
-      <div 
-        className="absolute inset-0 opacity-70 transition-all duration-1000 ease-out"
+      {/* Animated mesh gradient that responds to mouse */}
+      <motion.div 
+        className="absolute inset-0 opacity-80"
         style={{
           background: `
-            radial-gradient(ellipse 60% 50% at ${mousePosition.x}% ${mousePosition.y}%, rgba(168, 139, 250, 0.25), transparent 50%),
-            radial-gradient(ellipse 50% 40% at 80% 20%, rgba(244, 114, 182, 0.2), transparent 50%),
-            radial-gradient(ellipse 40% 30% at 20% 80%, rgba(34, 211, 238, 0.15), transparent 50%),
-            radial-gradient(ellipse 45% 35% at 70% 70%, rgba(251, 191, 36, 0.12), transparent 50%)
+            radial-gradient(ellipse 80% 60% at ${mousePosition.x}% ${mousePosition.y}%, rgba(168, 139, 250, 0.2), transparent 50%),
+            radial-gradient(ellipse 60% 50% at 80% 20%, rgba(244, 114, 182, 0.15), transparent 50%),
+            radial-gradient(ellipse 50% 40% at 20% 80%, rgba(34, 211, 238, 0.12), transparent 50%),
+            radial-gradient(ellipse 70% 50% at 70% 70%, rgba(251, 191, 36, 0.08), transparent 50%),
+            radial-gradient(ellipse 40% 30% at 30% 30%, rgba(52, 211, 153, 0.1), transparent 50%)
           `
         }}
       />
 
-      {/* Floating pastel blobs */}
+      {/* Large morphing blobs with breathing animation */}
+      <motion.div
+        className="absolute w-[700px] h-[700px] animate-blob-morph"
+        style={{
+          top: '5%',
+          left: '10%',
+          background: 'radial-gradient(circle, rgba(196, 181, 253, 0.35) 0%, rgba(196, 181, 253, 0) 70%)',
+          filter: 'blur(80px)',
+        }}
+      />
+      
+      <motion.div
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.25, 0.4, 0.25],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="absolute w-[800px] h-[800px]"
+        style={{
+          top: '30%',
+          right: '5%',
+          background: 'radial-gradient(circle, rgba(244, 114, 182, 0.3) 0%, rgba(244, 114, 182, 0) 70%)',
+          filter: 'blur(100px)',
+        }}
+      />
+      
       <motion.div
         animate={{
           x: [0, 50, 0],
@@ -49,133 +87,167 @@ export function AnimatedBackground() {
           scale: [1, 1.1, 1],
         }}
         transition={{
-          duration: 25,
+          duration: 15,
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute top-[10%] left-[15%] w-[500px] h-[500px] rounded-full animate-blob-move"
+        className="absolute w-[600px] h-[600px]"
         style={{
-          background: 'radial-gradient(circle, rgba(196, 181, 253, 0.4) 0%, rgba(196, 181, 253, 0) 70%)',
-          filter: 'blur(60px)',
-        }}
-      />
-      
-      <motion.div
-        animate={{
-          x: [0, -40, 0],
-          y: [0, 40, 0],
-          scale: [1, 0.9, 1],
-        }}
-        transition={{
-          duration: 30,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute top-[40%] right-[10%] w-[600px] h-[600px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(244, 114, 182, 0.3) 0%, rgba(244, 114, 182, 0) 70%)',
-          filter: 'blur(80px)',
-        }}
-      />
-      
-      <motion.div
-        animate={{
-          x: [0, 30, 0],
-          y: [0, -50, 0],
-          scale: [1, 1.15, 1],
-        }}
-        transition={{
-          duration: 28,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute bottom-[10%] left-[30%] w-[450px] h-[450px] rounded-full"
-        style={{
+          bottom: '5%',
+          left: '25%',
           background: 'radial-gradient(circle, rgba(34, 211, 238, 0.25) 0%, rgba(34, 211, 238, 0) 70%)',
+          filter: 'blur(90px)',
+        }}
+      />
+
+      <motion.div
+        animate={{
+          scale: [1, 0.9, 1.1, 1],
+          opacity: [0.2, 0.3, 0.2],
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="absolute w-[500px] h-[500px]"
+        style={{
+          top: '60%',
+          left: '0%',
+          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, rgba(251, 191, 36, 0) 70%)',
           filter: 'blur(70px)',
         }}
       />
 
       <motion.div
         animate={{
-          x: [0, -20, 0],
-          y: [0, 30, 0],
+          x: [0, -30, 0],
+          y: [0, 20, 0],
         }}
         transition={{
-          duration: 22,
+          duration: 18,
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute top-[60%] left-[5%] w-[350px] h-[350px] rounded-full"
+        className="absolute w-[450px] h-[450px]"
         style={{
-          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, rgba(251, 191, 36, 0) 70%)',
-          filter: 'blur(50px)',
-        }}
-      />
-
-      <motion.div
-        animate={{
-          x: [0, 25, 0],
-          y: [0, -35, 0],
-        }}
-        transition={{
-          duration: 26,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute top-[5%] right-[25%] w-[400px] h-[400px] rounded-full"
-        style={{
+          top: '0%',
+          right: '20%',
           background: 'radial-gradient(circle, rgba(52, 211, 153, 0.2) 0%, rgba(52, 211, 153, 0) 70%)',
           filter: 'blur(60px)',
         }}
       />
 
-      {/* Floating light particles */}
-      {[...Array(8)].map((_, i) => (
+      {/* Moving ambient light beams */}
+      <motion.div
+        animate={{ 
+          x: ['-100%', '200%'],
+          opacity: [0, 0.15, 0]
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        className="absolute top-1/4 w-[300px] h-[800px] rotate-12"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(168, 139, 250, 0.1), transparent)',
+        }}
+      />
+      
+      <motion.div
+        animate={{ 
+          x: ['200%', '-100%'],
+          opacity: [0, 0.1, 0]
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "linear",
+          delay: 4
+        }}
+        className="absolute top-1/2 w-[200px] h-[600px] -rotate-12"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.08), transparent)',
+        }}
+      />
+
+      {/* Floating light particles - premium feel */}
+      {[...Array(20)].map((_, i) => (
         <motion.div
           key={i}
           animate={{
-            y: [0, -30, 0],
-            opacity: [0.3, 0.7, 0.3],
-            scale: [1, 1.2, 1],
+            y: [0, -40, 0],
+            x: [0, Math.sin(i) * 20, 0],
+            opacity: [0.2, 0.6, 0.2],
+            scale: [1, 1.3, 1],
           }}
           transition={{
-            duration: 4 + i * 0.5,
+            duration: 5 + i * 0.3,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: i * 0.3,
+            delay: i * 0.2,
           }}
           className="absolute rounded-full"
           style={{
-            width: 6 + i * 2,
-            height: 6 + i * 2,
-            left: `${10 + i * 12}%`,
-            top: `${20 + (i % 3) * 25}%`,
-            background: i % 2 === 0 
+            width: 4 + (i % 4) * 2,
+            height: 4 + (i % 4) * 2,
+            left: `${5 + i * 4.5}%`,
+            top: `${15 + (i % 5) * 18}%`,
+            background: i % 4 === 0 
               ? 'rgba(168, 139, 250, 0.5)' 
-              : 'rgba(244, 114, 182, 0.4)',
+              : i % 4 === 1
+                ? 'rgba(244, 114, 182, 0.4)'
+                : i % 4 === 2
+                  ? 'rgba(34, 211, 238, 0.4)'
+                  : 'rgba(52, 211, 153, 0.35)',
             filter: 'blur(1px)',
+            boxShadow: i % 3 === 0 ? '0 0 10px rgba(168, 139, 250, 0.5)' : 'none',
           }}
         />
       ))}
 
-      {/* Subtle grid overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
+      {/* Subtle animated grid overlay */}
+      <motion.div 
+        className="absolute inset-0 opacity-[0.025]"
+        animate={{
+          backgroundPosition: ['0px 0px', '60px 60px'],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear"
+        }}
         style={{
           backgroundImage: `
-            linear-gradient(rgba(168, 139, 250, 0.3) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(168, 139, 250, 0.3) 1px, transparent 1px)
+            linear-gradient(rgba(168, 139, 250, 0.4) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(168, 139, 250, 0.4) 1px, transparent 1px)
           `,
           backgroundSize: '60px 60px'
         }}
       />
 
-      {/* Ambient light effect at top */}
+      {/* Top ambient light diffusion */}
       <div 
-        className="absolute top-0 left-0 right-0 h-[400px] opacity-40"
+        className="absolute top-0 left-0 right-0 h-[500px] opacity-50"
         style={{
-          background: 'linear-gradient(to bottom, rgba(255,255,255,0.8) 0%, transparent 100%)'
+          background: 'linear-gradient(to bottom, rgba(255,255,255,0.9) 0%, transparent 100%)'
+        }}
+      />
+
+      {/* Subtle noise texture for depth */}
+      <div 
+        className="absolute inset-0 opacity-[0.015]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Vignette effect */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(250, 249, 255, 0.3) 100%)'
         }}
       />
     </div>
