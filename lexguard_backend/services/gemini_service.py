@@ -13,18 +13,24 @@ async def generate_json_response(prompt: str, content: str) -> dict:
         
     genai.configure(api_key=api_key)
     
-    # Use gemini-2.5-flash for speed
+    # Use gemini-2.5-flash for speed and reliability
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     full_prompt = f"{prompt}\n\nCONTENT TO ANALYZE:\n{content}\n\nOUTPUT STRICT JSON ONLY:"
     
+    # Configure deterministic JSON output with limits to prevent free-tier abuse
+    generation_config = genai.types.GenerationConfig(
+        temperature=0.1,
+        candidate_count=1,
+        max_output_tokens=4096,
+        response_mime_type="application/json"
+    )
+    
     try:
-        # In a real app we'd use await model.generate_content_async but 
-        # the sync version is fine if wrapped or for this MVP pattern.
-        # Actually, let's use the async version for better performance if possible,
-        # but the standard genai sdk generate_content is synchronous.
-        # We will use generate_content_async
-        response = await model.generate_content_async(full_prompt)
+        response = await model.generate_content_async(
+            full_prompt,
+            generation_config=generation_config
+        )
         cleaned_text = clean_json_response(response.text)
         return json.loads(cleaned_text)
     except Exception as e:

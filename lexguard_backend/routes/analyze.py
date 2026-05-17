@@ -55,8 +55,8 @@ async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile =
             # Empty or unreadable PDF
             return get_fallback_mock_response()
             
-        # 3. Smart Chunking (limit to top chunks)
-        chunks = chunk_legal_text(text, max_chunks=10)
+        # 3. Smart Chunking (limit to highest density chunks for free-tier optimization)
+        chunks = chunk_legal_text(text, max_chunks=5)
         if not chunks:
             return get_fallback_mock_response()
             

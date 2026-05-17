@@ -15,9 +15,25 @@ async def run_agent(agent_type: str, chunks: list[str]) -> list[dict]:
         # Combine chunks into a single text block to analyze
         content_to_analyze = "\n\n---\n\n".join(chunks)
         
-        # We ask the agent to return a JSON array of issues found.
-        # Let's augment the prompt to ensure it returns a list of clauses.
-        augmented_prompt = prompt_text + "\nReturn a JSON array of objects, where each object represents a flagged clause following the schema. If no risks found, return empty array []."
+        # Inject strict JSON schema and Real-World Impact rules directly into the prompt
+        augmented_prompt = prompt_text + """
+
+CRITICAL JSON INSTRUCTIONS:
+Return a STRICT JSON array of objects representing flagged clauses. If no risks are found, return an empty array [].
+DO NOT wrap the response in ```json ``` markdown. Return raw JSON.
+
+Schema for each object in the array:
+{
+  "category": "Domain (e.g. Employment, Privacy, Financial)",
+  "text": "The exact verbatim contract text you are flagging",
+  "risk_level": "high", "medium", or "low",
+  "explanation": "Clear, professional explanation of why this is a risk",
+  "confidence_score": Integer between 0 and 100,
+  "affected_party": "e.g., Employee, Consultant, Contractor",
+  "negotiation_tip": "A practical sentence on how to counter or negotiate this term",
+  "real_world_impact": "CRITICAL: Write a human, practical, and emotionally understandable consequence. Good: 'This clause may prevent you from joining competitors for 24 months after resignation.' Bad: 'This is restrictive.'"
+}
+"""
         
         result = await generate_json_response(augmented_prompt, content_to_analyze)
         

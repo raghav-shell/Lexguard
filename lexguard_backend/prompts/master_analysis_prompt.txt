@@ -9,4 +9,24 @@ CRITICAL FOCUS:
 - Extract the 'top_concerns'.
 - Ensure all clauses are correctly populated with 'affected_party', 'real_world_impact', and 'confidence_score'.
 
-Return ONLY valid JSON. No markdown ticks, no preamble.
+Return ONLY valid JSON matching this exact schema. Do not include markdown blocks.
+
+SCHEMA:
+{
+  "overall_risk_score": Integer (1-100),
+  "fairness_score": Integer (1-100),
+  "overall_verdict": "critical" | "high-risk" | "caution" | "safe",
+  "summary": "A brief 2-sentence executive summary of the contract.",
+  "top_concerns": ["Concern 1", "Concern 2", "Concern 3"],
+  "risk_breakdown": {
+    "employment": Integer (0-100),
+    "privacy": Integer (0-100),
+    "financial": Integer (0-100),
+    "ip": Integer (0-100),
+    "fairness": Integer (0-100)
+  },
+  "clauses": [ 
+    // Insert the EXACT JSON objects from 'agent_findings' here.
+    // Do NOT omit any fields. Ensure 'real_world_impact' and 'affected_party' are preserved.
+  ]
+}
