@@ -110,27 +110,42 @@ def normalize_analysis_response(raw_json: dict) -> dict:
         "clauses": []
     }
 
-    # Normalize risk breakdown fields
+    # Safe integer conversion helper to handle percentage strings (e.g. "95%") or errors defensively
+    def safe_int(val, default=80) -> int:
+        if val is None:
+            return default
+        try:
+            if isinstance(val, (int, float)):
+                return int(val)
+            # Find all numbers in the string
+            digits = re.findall(r'\d+', str(val))
+            if digits:
+                return int(digits[0])
+        except Exception:
+            pass
+        return default
+
+    # Normalize risk breakdown fields using safe_int
     rb = normalized["risk_breakdown"]
     if isinstance(rb, dict):
         normalized["risk_breakdown"] = {
-            "employment": int(rb.get("employment", 50) or 50),
-            "privacy": int(rb.get("privacy", 50) or 50),
-            "financial": int(rb.get("financial", 50) or 50),
-            "ip": int(rb.get("ip", 50) or 50),
-            "fairness": int(rb.get("fairness", 50) or 50)
+            "employment": safe_int(rb.get("employment"), 50),
+            "privacy": safe_int(rb.get("privacy"), 50),
+            "financial": safe_int(rb.get("financial"), 50),
+            "ip": safe_int(rb.get("ip"), 50),
+            "fairness": safe_int(rb.get("fairness"), 50)
         }
     else:
         normalized["risk_breakdown"] = {
             "employment": 50, "privacy": 50, "financial": 50, "ip": 50, "fairness": 50
         }
 
-    # Map severity/risk_level to frontend ClauseSeverity type
+    # Map severity/risk_level to frontend ClauseSeverity type (substring-safe check)
     def map_severity(raw: str) -> str:
         s = str(raw or "medium").lower()
-        if s in ["critical"]: return "critical"
-        if s in ["high"]: return "high"
-        if s in ["low"]: return "low"
+        if "critical" in s: return "critical"
+        if "high" in s: return "high"
+        if "low" in s: return "low"
         return "medium"
 
     # Map category to a readable agent_source label
@@ -171,9 +186,23 @@ def normalize_analysis_response(raw_json: dict) -> dict:
             text      = str(c.get("text") or c.get("original_clause") or c.get("quote") or c.get("content") or "")
             severity  = map_severity(c.get("risk_level") or c.get("severity") or c.get("level") or "medium")
             explain   = str(c.get("explanation") or c.get("why_risky") or c.get("description") or "")
-            conf      = c.get("confidence_score") or c.get("confidence") or c.get("overall_risk_score") or c.get("risk_score") or 80
-            if isinstance(conf, (int, float)) and conf <= 10:
+            
+            raw_conf  = c.get("confidence_score") or c.get("confidence") or c.get("overall_risk_score") or c.get("risk_score") or 80
+            conf      = safe_int(raw_conf, 80)
+            if conf <= 10:
                 conf = conf * 10
+
+            raw_risk  = c.get("risk_score") or c.get("overall_risk_score")
+            risk_val  = safe_int(raw_risk, default=None)
+            if risk_val is None:
+                risk_val = conf // 10
+            risk_score = max(1, min(10, risk_val))
+
+            party = str(c.get("affected_party") or c.get("party") or "Both Parties").strip()
+            if party.lower() in ["both", "both parties", "both_parties", "bothparties"]:
+                party = "Both Parties"
+            else:
+                party = party.title()
 
             tip = str(c.get("negotiation_tip") or c.get("negotiation_recommendation") or c.get("recommendation") or c.get("tip") or "")
             if not tip:
@@ -184,8 +213,8 @@ def normalize_analysis_response(raw_json: dict) -> dict:
                 "clause_id":          str(c.get("clause_id") or c.get("id") or uuid.uuid4()),
                 "clause_type":        category,
                 "severity":           severity,
-                "risk_score":         max(1, min(10, int(c.get("risk_score") or c.get("overall_risk_score") or int(conf or 80) // 10 or 8))),
-                "affected_party":     str(c.get("affected_party") or c.get("party") or "Both Parties"),
+                "risk_score":         risk_score,
+                "affected_party":     party,
                 "fairness_assessment": str(c.get("fairness_assessment") or c.get("fairness_rating") or c.get("fairness") or "Requires Review"),
                 "original_clause":    text,
                 "plain_english":      str(c.get("plain_english") or explain),
@@ -193,7 +222,7 @@ def normalize_analysis_response(raw_json: dict) -> dict:
                 "real_world_impact":  str(c.get("real_world_impact") or c.get("impact") or ""),
                 "negotiation_tip":    tip,
                 "agent_source":       str(c.get("agent_source") or map_agent_source(category)),
-                "confidence_score":   int(conf or 80),
+                "confidence_score":   conf,
             }
             normalized["clauses"].append(clause)
 
