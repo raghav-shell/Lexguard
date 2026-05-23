@@ -14,6 +14,7 @@ CRITICAL INSTRUCTIONS:
 - CATEGORY LABELING: For each clause, the 'category' field MUST strictly be one of: "Employment", "Privacy", "Financial", "Intellectual Property", or "Fairness".
 - EXACT ORIGINAL CLAUSES: The 'text' field MUST contain the EXACT verbatim sentence or clause substring from the document text, without any paraphrasing, modification, truncation, or ellipses. This is critical because the frontend uses exact substring matching to highlight the clauses in the document viewer. Keep the 'explanation' field to 1 sentence.
 - REAL-WORLD IMPACT: The 'real_world_impact' field must be a human, emotionally impactful consequence (e.g., "This prevents you from working for competitors for 2 years.").
+- NEGOTIATION RECOMMENDATIONS: The 'negotiation_tip' field MUST contain a highly actionable, practical suggestion on how the reader can negotiate this specific risk (e.g., "Request a mutual notice period" or "Request a reasonable liability cap").
 - SCORING: Provide a highly accurate 'overall_risk_score' and 'fairness_score' (1-100).
 - SUMMARY: Provide a brief 2-sentence executive summary.
 

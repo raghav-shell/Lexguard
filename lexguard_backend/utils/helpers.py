@@ -145,6 +145,21 @@ def normalize_analysis_response(raw_json: dict) -> dict:
         }
         return mapping.get(category.lower(), "LEXGUARD AI")
 
+    # Generate an intelligent default negotiation tip based on category if the AI omits it
+    def generate_fallback_negotiation_tip(category: str) -> str:
+        cat = category.lower()
+        if "employment" in cat or "non-compete" in cat:
+            return "Propose limiting the geographic scope to 10-25 miles and reducing the duration to 6 months."
+        if "intellectual property" in cat or "ip" in cat:
+            return "Add an explicit intellectual property carve-out protecting inventions created entirely on your own time, using your own equipment, and unrelated to the company's business."
+        if "financial" in cat or "liability" in cat or "payment" in cat:
+            return "Request that payment approval timelines be explicitly defined and capped, and add late payment interest to prevent indefinite delays."
+        if "privacy" in cat or "consent" in cat or "monitor" in cat:
+            return "Request that device and communication monitoring be restricted strictly to company-owned hardware, during standard working hours, with zero access to personal accounts."
+        if "fairness" in cat or "termination" in cat:
+            return "Negotiate to make all termination notice requirements and severance provisions strictly mutual between both parties."
+        return "Seek to negotiate a more balanced and mutual version of this clause with the other party before signing."
+
     # Process and remap all clause fields (supports clauses, critical_clauses, flagged_clauses, risky_clauses)
     raw_clauses = raw_json.get("clauses") or raw_json.get("critical_clauses") or raw_json.get("flagged_clauses") or raw_json.get("risky_clauses") or []
     if isinstance(raw_clauses, list):
@@ -160,6 +175,10 @@ def normalize_analysis_response(raw_json: dict) -> dict:
             if isinstance(conf, (int, float)) and conf <= 10:
                 conf = conf * 10
 
+            tip = str(c.get("negotiation_tip") or c.get("negotiation_recommendation") or c.get("recommendation") or c.get("tip") or "")
+            if not tip:
+                tip = generate_fallback_negotiation_tip(category)
+
             clause = {
                 # Frontend-required field names
                 "clause_id":          str(c.get("clause_id") or c.get("id") or uuid.uuid4()),
@@ -172,7 +191,7 @@ def normalize_analysis_response(raw_json: dict) -> dict:
                 "plain_english":      str(c.get("plain_english") or explain),
                 "why_risky":          explain,
                 "real_world_impact":  str(c.get("real_world_impact") or c.get("impact") or ""),
-                "negotiation_tip":    str(c.get("negotiation_tip") or c.get("negotiation_recommendation") or c.get("recommendation") or ""),
+                "negotiation_tip":    tip,
                 "agent_source":       str(c.get("agent_source") or map_agent_source(category)),
                 "confidence_score":   int(conf or 80),
             }
