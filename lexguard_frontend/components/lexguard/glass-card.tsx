@@ -43,9 +43,11 @@ export function GlassCard({
   tilt = false
 }: GlassCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     setIsMobile(window.innerWidth < 768)
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
@@ -80,7 +82,7 @@ export function GlassCard({
       transition={{ duration: 0.6, delay, ease: [0.23, 1, 0.32, 1] }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={tilt && !isMobile ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
+      style={tilt && !isMobile && mounted ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
       className={cn(
         "relative rounded-3xl",
         "bg-white/60 backdrop-blur-xl",
@@ -136,9 +138,11 @@ export function GlassButton({
   disabled
 }: GlassButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     setIsMobile(window.innerWidth < 768)
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
@@ -204,11 +208,11 @@ export function GlassButton({
   return (
     <motion.button
       ref={buttonRef}
-      style={isMobile ? {} : { x, y }}
+      style={isMobile && mounted ? {} : { x, y }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      whileHover={{ scale: disabled ? 1 : 1.02 }}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
+      whileHover={isMobile && mounted ? undefined : { scale: disabled ? 1 : 1.02 }}
+      whileTap={isMobile && mounted ? undefined : { scale: disabled ? 1 : 0.98 }}
       onClick={onClick}
       disabled={disabled}
       className={cn(
