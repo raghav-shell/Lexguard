@@ -55,16 +55,38 @@ export function ContractViewer({ extractedText, clauses, activeClauseId }: Contr
       }
     })
 
-    // Split by newlines to create paragraphs
-    const paragraphs = highlightedHTML.split('\n').filter(p => p.trim() !== '')
+    // Split by double newlines to create real paragraphs
+    const paragraphs = highlightedHTML.split(/\n\s*\n/).filter(p => p.trim() !== '')
 
-    return paragraphs.map((p, i) => (
-      <p 
-        key={i} 
-        className="mb-4 text-slate-700 leading-relaxed text-sm md:text-base font-serif"
-        dangerouslySetInnerHTML={{ __html: p }}
-      />
-    ))
+    return paragraphs.map((p, i) => {
+      const lines = p.split('\n')
+      let cleanParagraph = ""
+      
+      lines.forEach((line, index) => {
+        const trimmed = line.trim()
+        if (!trimmed) return
+        
+        if (index === 0) {
+          cleanParagraph += line
+        } else {
+          // If the line starts with a list bullet, preserve the visual line break
+          const isListItem = /^\s*[-*•\d+\.]/.test(trimmed)
+          if (isListItem) {
+            cleanParagraph += "<br />" + line
+          } else {
+            cleanParagraph += " " + line
+          }
+        }
+      })
+
+      return (
+        <p 
+          key={i} 
+          className="mb-6 text-slate-700 leading-relaxed text-sm md:text-base font-serif"
+          dangerouslySetInnerHTML={{ __html: cleanParagraph }}
+        />
+      )
+    })
   }
 
   return (
