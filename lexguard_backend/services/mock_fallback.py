@@ -47,13 +47,28 @@ def get_fallback_mock_response() -> dict:
           "risk_score": 8,
           "affected_party": "Creator",
           "fairness_assessment": "Unfair Overreach",
-          "original_clause": "Company retains perpetual, exclusive rights to all intellectual property created by the Employee during the term of employment, regardless of whether company resources were utilized.",
+          "original_clause": "Company retains perpetual, exclusive rights to all intellectual property created by the Employee during the term of employment, regardless of whether company resources were utilized, including side projects or inventions made on the Employee's personal time.",
           "plain_english": "The company owns everything you create while employed here, even side projects built at home.",
           "why_risky": "It claims ownership over your personal creations outside of work hours.",
           "real_world_impact": "If you build a successful side-hustle app on your weekends, the company can legally claim 100% ownership and revenues.",
           "negotiation_tip": "Add an explicit carve-out protecting inventions made entirely on your own time without company equipment.",
           "agent_source": "IP Agent",
           "confidence_score": 98
+        },
+        {
+          "clause_id": "mock-3",
+          "clause_type": "Fairness",
+          "severity": "high",
+          "risk_score": 9,
+          "affected_party": "Employee",
+          "fairness_assessment": "Unilateral Notice & No Severance",
+          "original_clause": "Company may terminate this Agreement at any time, with or without cause, without severance pay. Employee must provide four (4) weeks written notice prior to resignation.",
+          "plain_english": "The company can fire you instantly for no reason with zero severance pay, but you are required to give them 4 weeks of advance notice if you want to leave.",
+          "why_risky": "Unilateral termination rights without severance, combined with an asymmetrical notice requirement.",
+          "real_world_impact": "You could be abruptly let go without any financial safety net, while you are locked into a strict notice period if you want to leave.",
+          "negotiation_tip": "Request a mutual notice period (e.g., 2-4 weeks) or at least 2 weeks of severance pay if terminated without cause.",
+          "agent_source": "Fairness Agent",
+          "confidence_score": 92
         }
       ]
     }
