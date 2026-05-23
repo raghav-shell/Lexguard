@@ -101,7 +101,7 @@ export function GlassCard({
       
       {/* Moving light reflection on hover */}
       <motion.div
-        className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden"
+        className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden hidden md:block"
       >
         <motion.div
           className="absolute w-32 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent"

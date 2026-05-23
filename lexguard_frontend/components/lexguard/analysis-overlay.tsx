@@ -72,7 +72,7 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
         if (newProgress >= 100) {
           clearInterval(progressInterval)
           clearInterval(stepInterval)
-          setTimeout(onComplete, 600)
+          setTimeout(() => onComplete?.(), 600)
           return 100
         }
         return newProgress

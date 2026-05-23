@@ -148,7 +148,7 @@ export function ContractViewer({ extractedText, clauses, activeClauseId }: Contr
          <motion.div
           animate={{ opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 5, repeat: Infinity }}
-          className="absolute top-20 left-20 w-64 h-64 rounded-full pointer-events-none"
+          className="absolute top-20 left-20 w-64 h-64 rounded-full pointer-events-none hidden md:block"
           style={{
             background: 'radial-gradient(circle, rgba(168, 139, 250, 0.15) 0%, transparent 70%)',
             filter: 'blur(40px)',

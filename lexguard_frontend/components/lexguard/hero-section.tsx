@@ -18,7 +18,7 @@ const letterVariants = {
     transition: {
       delay: 0.4 + i * 0.05,
       duration: 0.8,
-      ease: [0.23, 1, 0.32, 1],
+      ease: [0.23, 1, 0.32, 1] as any,
     },
   }),
 }
@@ -77,43 +77,45 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
 
   return (
     <section ref={containerRef} className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
-      {/* Animated AI orb in background */}
-      <motion.div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-        animate={{
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
-        {/* Outer glow rings */}
-        {[...Array(4)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute inset-0 rounded-full"
-            style={{
-              width: 400 + i * 100,
-              height: 400 + i * 100,
-              left: -(200 + i * 50),
-              top: -(200 + i * 50),
-              background: `radial-gradient(circle, rgba(168, 139, 250, ${0.08 - i * 0.015}) 0%, transparent 70%)`,
-            }}
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 3 + i * 0.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.2,
-            }}
-          />
-        ))}
-      </motion.div>
+      {/* Animated AI orb in background - hidden on mobile */}
+      <div className="hidden md:block">
+        <motion.div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          animate={{
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          {/* Outer glow rings */}
+          {[...Array(4)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute inset-0 rounded-full"
+              style={{
+                width: 400 + i * 100,
+                height: 400 + i * 100,
+                left: -(200 + i * 50),
+                top: -(200 + i * 50),
+                background: `radial-gradient(circle, rgba(168, 139, 250, ${0.08 - i * 0.015}) 0%, transparent 70%)`,
+              }}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 3 + i * 0.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </motion.div>
+      </div>
 
       <div className="max-w-6xl mx-auto text-center relative z-10">
         {/* Floating badge with shimmer */}
@@ -242,8 +244,8 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
               transform: useMotionTemplate`perspective(1000px) rotateX(${smoothMouseY}deg) rotateY(${smoothMouseX}deg)`,
             }}
           >
-            {/* Animated scanning overlay */}
-            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+            {/* Animated scanning overlay - hidden on mobile */}
+            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none hidden md:block">
               {/* Horizontal scan lines */}
               {[...Array(3)].map((_, i) => (
                 <motion.div

@@ -221,7 +221,7 @@ Best regards,
             opacity: [0.15, 0.25, 0.15],
           }}
           transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-20 right-20 w-[400px] h-[400px] rounded-full"
+          className="absolute top-20 right-20 w-[400px] h-[400px] rounded-full hidden md:block"
           style={{
             background: 'radial-gradient(circle, rgba(168, 139, 250, 0.3) 0%, transparent 70%)',
             filter: 'blur(60px)',
@@ -233,7 +233,7 @@ Best regards,
             opacity: [0.1, 0.2, 0.1],
           }}
           transition={{ duration: 10, repeat: Infinity, delay: 2 }}
-          className="absolute bottom-20 left-20 w-[500px] h-[500px] rounded-full"
+          className="absolute bottom-20 left-20 w-[500px] h-[500px] rounded-full hidden md:block"
           style={{
             background: 'radial-gradient(circle, rgba(244, 114, 182, 0.25) 0%, transparent 70%)',
             filter: 'blur(80px)',

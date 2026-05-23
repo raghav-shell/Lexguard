@@ -134,7 +134,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
             y: [0, -20, 0],
           }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-20 -right-20 w-60 h-60 rounded-full pointer-events-none"
+          className="absolute -top-20 -right-20 w-60 h-60 rounded-full pointer-events-none hidden md:block"
           style={{
             background: `radial-gradient(circle, ${config.orbColor} 0%, transparent 70%)`,
             filter: 'blur(40px)',
@@ -142,7 +142,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
         />
 
         {/* Scanning line effect */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
           <motion.div
             animate={{ y: ["-100%", "200%"] }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
@@ -174,7 +174,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
                     opacity: [0.3, 0.5, 0.3],
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 rounded-2xl"
+                  className="absolute inset-0 rounded-2xl hidden md:block"
                   style={{
                     background: `radial-gradient(circle, ${config.orbColor} 0%, transparent 70%)`,
                     filter: 'blur(15px)',
@@ -329,7 +329,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
           >
             {/* Animated gradient border effect */}
             <motion.div
-              className="absolute inset-0 rounded-2xl opacity-30"
+              className="absolute inset-0 rounded-2xl opacity-30 hidden md:block"
               animate={{
                 background: [
                   `linear-gradient(0deg, ${config.glow}, transparent)`,

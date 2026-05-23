@@ -130,7 +130,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
             opacity: [0.3, 0.5, 0.3],
           }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="absolute -top-20 -right-20 w-40 h-40 rounded-full pointer-events-none"
+          className="absolute -top-20 -right-20 w-40 h-40 rounded-full pointer-events-none hidden md:block"
           style={{
             background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
             filter: 'blur(30px)',
@@ -185,7 +185,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
               <motion.div
                 animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 rounded-xl sm:rounded-2xl"
+                className="absolute inset-0 rounded-xl sm:rounded-2xl hidden md:block"
                 style={{
                   background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
                   filter: 'blur(8px)',
@@ -247,7 +247,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
           >
             {/* Subtle animated gradient */}
             <motion.div
-              className="absolute inset-0 opacity-30"
+              className="absolute inset-0 opacity-30 hidden md:block"
               animate={{
                 background: [
                   `linear-gradient(45deg, ${config.pulseColor}, transparent)`,
@@ -274,7 +274,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
             className="flex items-center justify-center mt-5 pt-4 border-t border-slate-100"
           >
             <motion.button
-              className="flex items-center gap-2 text-slate-400 hover:text-violet-500 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 text-slate-400 hover:text-violet-500 transition-colors text-sm font-medium pointer-events-none"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

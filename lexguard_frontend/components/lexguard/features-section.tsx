@@ -109,7 +109,7 @@ export function FeaturesSection() {
       {/* Floating background elements with parallax */}
       <motion.div
         style={{ y }}
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none hidden md:block"
       >
         <motion.div
           animate={{

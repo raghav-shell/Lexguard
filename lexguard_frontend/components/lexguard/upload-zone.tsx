@@ -238,15 +238,15 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                       ))}
                     </div>
 
-                    <div>
+                    <div className="relative inline-block overflow-hidden">
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={handleFileSelect}
-                        className="hidden"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
                         ref={fileInputRef}
                       />
-                      <GlassButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
+                      <GlassButton variant="secondary">
                         <FileText className="w-4 h-4" />
                         Browse Files
                       </GlassButton>
