@@ -238,7 +238,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                       ))}
                     </div>
 
-                    <div className="relative inline-block rounded-2xl group transition-all duration-300 group-hover:scale-[1.03] group-active:scale-[0.97]">
+                    <div className="relative inline-block rounded-2xl group transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]">
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
