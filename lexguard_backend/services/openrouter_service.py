@@ -35,6 +35,10 @@ async def generate_openrouter_response(prompt: str, content: str) -> dict:
         "model": model,
         "response_format": {"type": "json_object"},
         "messages": [
+            {
+                "role": "system",
+                "content": "You are a legal document analyzer. You must output STRICT JSON matching the schema. CRITICAL: The 'text' field for each clause MUST be an exact 100% verbatim substring directly from the contract text as written, with zero changes, zero paraphrasing, and zero ellipses, so it can be matched and highlighted in the document viewer."
+            },
             {"role": "user", "content": full_prompt}
         ]
     }

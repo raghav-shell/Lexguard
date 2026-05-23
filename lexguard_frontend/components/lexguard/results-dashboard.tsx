@@ -114,8 +114,8 @@ function findBestFuzzyMatch(documentText: string, searchClause: string): string 
       // F1-like score with high weight on recall (since LLM quotes might be subsets/paraphrases)
       const score = recall * 0.85 + precision * 0.15
 
-      // Only consider if recall is high enough (at least 60% of search words are matched)
-      if (recall >= 0.6 && score > bestScore) {
+      // Only consider if recall is high enough (at least 45% of search words are matched)
+      if (recall >= 0.45 && score > bestScore) {
         bestScore = score
         bestMatch = rawTextMatch
       }
@@ -123,7 +123,7 @@ function findBestFuzzyMatch(documentText: string, searchClause: string): string 
   }
 
   // Return the best match if it has a high score, otherwise fallback
-  return bestScore >= 0.6 ? bestMatch : null
+  return bestScore >= 0.45 ? bestMatch : null
 }
 
 export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
