@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 import asyncio
-from services.pdf_parser import extract_text_from_pdf
+from services.pdf_parser import extract_text_from_pdf, extract_text_from_docx
 from services.chunking import chunk_legal_text
 from services.unified_analysis import build_super_analysis
 from services.mock_fallback import get_fallback_mock_response
@@ -58,9 +58,13 @@ async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile =
 
     try:
         # 3. Extract Text
-        text = await extract_text_from_pdf(file_bytes)
+        if file.filename.lower().endswith('.docx'):
+            text = extract_text_from_docx(file_bytes)
+        else:
+            text = await extract_text_from_pdf(file_bytes)
+
         if not text or len(text.strip()) < 50:
-            print("PDF extraction returned insufficient text, using mock fallback.")
+            print("Document extraction returned insufficient text, using mock fallback.")
             analysis_status["stage"] = "Complete (Fallback)"
             return get_fallback_mock_response()
 

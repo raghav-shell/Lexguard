@@ -31,7 +31,14 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
     setIsDragOver(false)
     
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile && (droppedFile.type === "application/pdf" || droppedFile.name.endsWith(".pdf") || droppedFile.name.endsWith(".docx") || droppedFile.name.endsWith(".doc"))) {
+    if (droppedFile && (
+      droppedFile.type === "application/pdf" || 
+      droppedFile.type === "application/msword" || 
+      droppedFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
+      droppedFile.name.toLowerCase().endsWith(".pdf") || 
+      droppedFile.name.toLowerCase().endsWith(".docx") || 
+      droppedFile.name.toLowerCase().endsWith(".doc")
+    )) {
       setFile(droppedFile)
     }
   }, [])
@@ -234,7 +241,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                     <div>
                       <input
                         type="file"
-                        accept=".pdf,.doc,.docx"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={handleFileSelect}
                         className="hidden"
                         ref={fileInputRef}
