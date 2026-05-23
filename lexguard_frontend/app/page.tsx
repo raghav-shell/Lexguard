@@ -206,6 +206,7 @@ export default function LexguardPage() {
           fileName: file.name,
           analyzedAt: new Date(),
         })
+        window.scrollTo({ top: 0, behavior: "instant" })
         setAppState("results")
       }, 800)
     } catch (error) {
