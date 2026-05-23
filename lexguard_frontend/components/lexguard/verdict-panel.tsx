@@ -153,9 +153,9 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
           />
         </div>
 
-        <div className="relative p-8">
+        <div className="relative p-5 xs:p-6 sm:p-8">
           {/* Header with animated icon */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <motion.div
                 className={cn(
@@ -321,7 +321,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
           {/* Summary with animated border */}
           <motion.div 
             className={cn(
-              "p-5 rounded-2xl border relative overflow-hidden",
+              "p-4 sm:p-5 rounded-2xl border relative overflow-hidden",
               config.bg, config.border
             )}
             whileHover={{ scale: 1.01 }}
@@ -340,25 +340,25 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
               transition={{ duration: 4, repeat: Infinity }}
             />
 
-            <div className="relative z-10 flex items-start gap-4">
-              <motion.div 
-                className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                  `bg-gradient-to-br ${config.gradient}`
-                )}
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              >
-                <Shield className={cn("w-6 h-6", config.text)} />
-              </motion.div>
-              <div>
-                <div className={cn("text-sm font-semibold mb-2", config.text)}>
+            <div className="relative z-10 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <motion.div 
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                    `bg-gradient-to-br ${config.gradient}`
+                  )}
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                >
+                  <Shield className={cn("w-5.5 h-5.5", config.text)} />
+                </motion.div>
+                <div className={cn("text-sm font-semibold sm:text-base", config.text)}>
                   {config.description}
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  {summary}
-                </p>
               </div>
+              <p className="text-sm text-slate-600 leading-relaxed pl-0 sm:pl-13">
+                {summary}
+              </p>
             </div>
           </motion.div>
         </div>
