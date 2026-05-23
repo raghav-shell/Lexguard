@@ -198,27 +198,27 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
             />
           </div>
 
-          {/* Floating neural particles */}
+          {/* Floating neural particles (deterministic index-based to prevent Next.js hydration mismatches) */}
           {[...Array(30)].map((_, i) => (
             <motion.div
               key={i}
               animate={{
-                y: [0, -window.innerHeight * 1.2],
+                y: [0, -(typeof window !== "undefined" ? window.innerHeight : 1000) * 1.2],
                 opacity: [0, 0.8, 0.8, 0],
                 scale: [0.5, 1, 1, 0.5],
                 rotate: [0, 180, 360],
               }}
               transition={{
-                duration: 4 + Math.random() * 3,
+                duration: 4 + ((i * 7) % 3),
                 repeat: Infinity,
                 delay: i * 0.15,
                 ease: "linear"
               }}
               className="absolute rounded-full"
               style={{
-                width: 3 + Math.random() * 5,
-                height: 3 + Math.random() * 5,
-                left: `${Math.random() * 100}%`,
+                width: 3 + ((i * 13) % 5),
+                height: 3 + ((i * 13) % 5),
+                left: `${(i * 37) % 100}%`,
                 bottom: -20,
                 background: i % 4 === 0 
                   ? 'rgba(168, 139, 250, 0.7)' 
