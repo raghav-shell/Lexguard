@@ -19,21 +19,22 @@ app = FastAPI(
 )
 
 # ============================================================
-# CORS — allow localhost in dev + configured frontend URL in prod
+# CORS — Dynamic allowed origins + regex for Vercel deployments
 # ============================================================
-FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+frontend_urls = os.getenv("FRONTEND_URL", "")
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://lexguard123.vercel.app",
 ]
-if FRONTEND_URL:
-    allowed_origins.append(FRONTEND_URL)
-    allowed_origins.append(FRONTEND_URL.rstrip("/"))
+if frontend_urls:
+    allowed_origins.extend(
+        [url.strip() for url in frontend_urls.split(",")]
+    )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,13 +65,10 @@ async def root():
 
 @app.get("/health")
 async def health():
-    gemini_key = os.getenv("GEMINI_API_KEY", "")
-    openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
     return {
         "status": "healthy",
-        "gemini": bool(gemini_key and gemini_key != "your_gemini_api_key_here"),
-        "openrouter": bool(openrouter_key and openrouter_key != "your_openrouter_api_key_here"),
-        "mock_fallback": True
+        "service": "LEXGUARD Backend",
+        "version": "2.0.0"
     }
 
 # ============================================================
