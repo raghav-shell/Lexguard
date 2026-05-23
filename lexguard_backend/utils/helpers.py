@@ -142,10 +142,13 @@ def normalize_analysis_response(raw_json: dict) -> dict:
 
     # Map severity/risk_level to frontend ClauseSeverity type (substring-safe check)
     def map_severity(raw: str) -> str:
-        s = str(raw or "medium").lower()
-        if "critical" in s: return "critical"
-        if "high" in s: return "high"
-        if "low" in s: return "low"
+        s = str(raw or "").lower()
+        if any(w in s for w in ["critical", "severe", "danger", "red", "extreme"]):
+            return "critical"
+        if any(w in s for w in ["high", "major", "elevated", "orange"]):
+            return "high"
+        if any(w in s for w in ["low", "minor", "negligible", "minimal", "safe", "green", "acceptable"]):
+            return "low"
         return "medium"
 
     # Map category to a readable agent_source label
@@ -184,7 +187,6 @@ def normalize_analysis_response(raw_json: dict) -> dict:
 
             category  = str(c.get("category") or c.get("clause_type") or c.get("type") or "General")
             text      = str(c.get("text") or c.get("original_clause") or c.get("quote") or c.get("content") or "")
-            severity  = map_severity(c.get("risk_level") or c.get("severity") or c.get("level") or "medium")
             explain   = str(c.get("explanation") or c.get("why_risky") or c.get("description") or "")
             
             raw_conf  = c.get("confidence_score") or c.get("confidence") or c.get("overall_risk_score") or c.get("risk_score") or 80
@@ -197,6 +199,26 @@ def normalize_analysis_response(raw_json: dict) -> dict:
             if risk_val is None:
                 risk_val = conf // 10
             risk_score = max(1, min(10, risk_val))
+
+            # Heuristic fallback mapping: prevent any unrecognized strings from collapsing to medium
+            raw_severity = (
+                c.get("risk_level") or 
+                c.get("severity") or 
+                c.get("level") or 
+                c.get("risk") or 
+                c.get("risk_severity")
+            )
+            if raw_severity:
+                severity = map_severity(raw_severity)
+            else:
+                if risk_score >= 9:
+                    severity = "critical"
+                elif risk_score >= 7:
+                    severity = "high"
+                elif risk_score >= 4:
+                    severity = "medium"
+                else:
+                    severity = "low"
 
             party = str(c.get("affected_party") or c.get("party") or "Both Parties").strip()
             if party.lower() in ["both", "both parties", "both_parties", "bothparties"]:
