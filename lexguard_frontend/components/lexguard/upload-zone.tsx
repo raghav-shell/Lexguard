@@ -238,7 +238,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                       ))}
                     </div>
 
-                    <div className="relative inline-block overflow-hidden group">
+                    <div className="relative inline-block rounded-2xl group transition-all duration-300 group-hover:scale-[1.03] group-active:scale-[0.97]">
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -252,10 +252,8 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                           "relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-semibold text-base overflow-hidden",
                           "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white",
                           "shadow-[0_4px_24px_rgba(168,139,250,0.45)]",
-                          "transition-all duration-300",
+                          "transition-shadow duration-300",
                           "group-hover:shadow-[0_8px_40px_rgba(168,139,250,0.6)]",
-                          "group-hover:scale-[1.03]",
-                          "group-active:scale-[0.97]"
                         )}
                       >
                         {/* Shimmer sweep */}
