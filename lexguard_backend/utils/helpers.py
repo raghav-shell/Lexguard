@@ -71,19 +71,42 @@ def normalize_analysis_response(raw_json: dict) -> dict:
         raw_json = {}
 
     # Map verdict safely
-    verdict = str(raw_json.get("overall_verdict", "caution")).lower()
+    verdict = str(raw_json.get("overall_verdict") or raw_json.get("verdict") or "caution").lower()
     if verdict not in ["critical", "high-risk", "caution", "safe"]:
         verdict = "caution"
 
+    # Deep extract overall risk and fairness scores supporting diverse schemas
+    overall_risk = raw_json.get("overall_risk_score")
+    if overall_risk is None:
+        overall_risk = raw_json.get("total_risk_assessment", {}).get("overall_contract_risk")
+    if overall_risk is None:
+        overall_risk = raw_json.get("overall_contract_risk")
+    if overall_risk is None:
+        overall_risk = 50
+
+    fairness = raw_json.get("fairness_score")
+    if fairness is None:
+        fairness = raw_json.get("total_risk_assessment", {}).get("fairness_rating")
+    if fairness is None:
+        fairness = raw_json.get("fairness_rating")
+    if fairness is None:
+        fairness = 50
+
+    summary = str(raw_json.get("summary") or raw_json.get("executive_summary") or "Analysis completed.")
+
+    top_concerns = raw_json.get("top_concerns") or raw_json.get("key_concerns") or raw_json.get("concerns") or []
+    if not isinstance(top_concerns, list):
+        top_concerns = []
+
     normalized = {
-        "overall_risk_score": int(raw_json.get("overall_risk_score", 50) or 50),
-        "fairness_score": int(raw_json.get("fairness_score", 50) or 50),
+        "overall_risk_score": int(overall_risk),
+        "fairness_score": int(fairness),
         "overall_verdict": verdict,
-        "summary": str(raw_json.get("summary", "Analysis completed.")),
-        "top_concerns": list(raw_json.get("top_concerns", [])),
-        "risk_breakdown": raw_json.get("risk_breakdown", {
+        "summary": summary,
+        "top_concerns": top_concerns,
+        "risk_breakdown": raw_json.get("risk_breakdown") or raw_json.get("breakdown") or {
             "employment": 50, "privacy": 50, "financial": 50, "ip": 50, "fairness": 50
-        }),
+        },
         "clauses": []
     }
 
@@ -122,37 +145,41 @@ def normalize_analysis_response(raw_json: dict) -> dict:
         }
         return mapping.get(category.lower(), "LEXGUARD AI")
 
-    # Process and remap all clause fields
-    raw_clauses = raw_json.get("clauses", [])
+    # Process and remap all clause fields (supports clauses, critical_clauses, flagged_clauses, risky_clauses)
+    raw_clauses = raw_json.get("clauses") or raw_json.get("critical_clauses") or raw_json.get("flagged_clauses") or raw_json.get("risky_clauses") or []
     if isinstance(raw_clauses, list):
         for c in raw_clauses:
             if not isinstance(c, dict):
                 continue
 
-            # Support both backend field names (category/text/risk_level/explanation)
-            # and legacy field names (clause_type/original_clause/severity/why_risky)
-            category  = str(c.get("category") or c.get("clause_type") or "General")
-            text      = str(c.get("text") or c.get("original_clause") or "")
-            severity  = map_severity(c.get("risk_level") or c.get("severity") or "medium")
-            explain   = str(c.get("explanation") or c.get("why_risky") or "")
-            conf      = c.get("confidence_score", 80)
+            category  = str(c.get("category") or c.get("clause_type") or c.get("type") or "General")
+            text      = str(c.get("text") or c.get("original_clause") or c.get("quote") or c.get("content") or "")
+            severity  = map_severity(c.get("risk_level") or c.get("severity") or c.get("level") or "medium")
+            explain   = str(c.get("explanation") or c.get("why_risky") or c.get("description") or "")
+            conf      = c.get("confidence_score") or c.get("confidence") or c.get("overall_risk_score") or c.get("risk_score") or 80
+            if isinstance(conf, (int, float)) and conf <= 10:
+                conf = conf * 10
 
             clause = {
                 # Frontend-required field names
                 "clause_id":          str(c.get("clause_id") or c.get("id") or uuid.uuid4()),
                 "clause_type":        category,
                 "severity":           severity,
-                "risk_score":         max(1, min(10, int(conf or 80) // 10)),  # map 0-100 → 1-10
-                "affected_party":     str(c.get("affected_party") or "Both Parties"),
-                "fairness_assessment": str(c.get("fairness_assessment") or "Requires Review"),
+                "risk_score":         max(1, min(10, int(c.get("risk_score") or c.get("overall_risk_score") or int(conf or 80) // 10 or 8))),
+                "affected_party":     str(c.get("affected_party") or c.get("party") or "Both Parties"),
+                "fairness_assessment": str(c.get("fairness_assessment") or c.get("fairness_rating") or c.get("fairness") or "Requires Review"),
                 "original_clause":    text,
                 "plain_english":      str(c.get("plain_english") or explain),
                 "why_risky":          explain,
-                "real_world_impact":  str(c.get("real_world_impact") or ""),
-                "negotiation_tip":    str(c.get("negotiation_tip") or ""),
+                "real_world_impact":  str(c.get("real_world_impact") or c.get("impact") or ""),
+                "negotiation_tip":    str(c.get("negotiation_tip") or c.get("negotiation_recommendation") or c.get("recommendation") or ""),
                 "agent_source":       str(c.get("agent_source") or map_agent_source(category)),
                 "confidence_score":   int(conf or 80),
             }
             normalized["clauses"].append(clause)
+
+    # Populate top concerns if empty but clauses exist
+    if not normalized["top_concerns"] and normalized["clauses"]:
+        normalized["top_concerns"] = [c["why_risky"] or c["plain_english"] for c in normalized["clauses"][:3]]
 
     return normalized
