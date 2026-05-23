@@ -205,15 +205,15 @@ Best regards,
           transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
           className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 print:hidden"
         >
-          <div className="flex items-center gap-4">
-            <GlassButton variant="ghost" onClick={onBack}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+            <GlassButton variant="ghost" onClick={onBack} className="self-start flex-shrink-0">
               <ArrowLeft className="w-4 h-4" />
               Back
             </GlassButton>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <motion.div 
-                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 border border-violet-200/50 flex items-center justify-center shadow-lg relative overflow-hidden"
+                className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 border border-violet-200/50 flex items-center justify-center shadow-lg relative overflow-hidden flex-shrink-0"
                 whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
                 transition={{ duration: 0.5 }}
               >
@@ -222,21 +222,21 @@ Best regards,
                   animate={{ x: ["-100%", "100%"] }}
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                 />
-                <FileText className="w-7 h-7 text-violet-500 relative z-10" />
+                <FileText className="w-5.5 h-5.5 sm:w-7 sm:h-7 text-violet-500 relative z-10" />
               </motion.div>
-              <div>
-                <h1 className="text-xl font-semibold text-slate-800 truncate max-w-[300px] md:max-w-[500px]">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-800 truncate max-w-[200px] xs:max-w-[260px] sm:max-w-[500px]">
                   {result.fileName}
                 </h1>
-                <div className="flex items-center gap-2 text-sm text-slate-400">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
                   <Clock className="w-3.5 h-3.5" />
-                  Analyzed {result.analyzedAt.toLocaleTimeString()}
+                  <span>Analyzed {result.analyzedAt.toLocaleTimeString()}</span>
                 </div>
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
+ 
+          <div className="flex flex-wrap gap-2.5 sm:gap-3 flex-shrink-0">
             <GlassButton variant="secondary" size="sm" onClick={handleShare}>
               <Share2 className="w-4 h-4" />
               Share Report
