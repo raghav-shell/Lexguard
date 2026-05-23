@@ -258,7 +258,9 @@ export default function LexguardPage() {
         <ResultsDashboard result={analysisResult} onBack={handleBack} />
       )}
 
-      <AnalysisOverlay isVisible={appState === "analyzing"} statusMessage={statusMessage} />
+      {appState === "analyzing" && (
+        <AnalysisOverlay isVisible={appState === "analyzing"} statusMessage={statusMessage} />
+      )}
 
       {appState === "error" && <ErrorState type={errorType} onRetry={handleRetry} />}
     </main>

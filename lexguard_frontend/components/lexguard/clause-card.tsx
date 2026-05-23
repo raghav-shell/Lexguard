@@ -270,15 +270,13 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
           </motion.div>
 
           {/* Expand indicator */}
-          <motion.div 
+          <div 
             className="flex items-center justify-center mt-5 pt-4 border-t border-slate-100"
           >
-            <motion.button
-              className="flex items-center gap-2 text-slate-400 hover:text-violet-500 transition-colors text-sm font-medium pointer-events-none"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
+              className="flex items-center gap-2 text-slate-400 hover:text-violet-500 transition-colors text-sm font-medium"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4 text-violet-400" />
               <span>{isExpanded ? "Hide Details" : "View Agent Details & Plain English"}</span>
               <motion.div
                 animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -286,8 +284,8 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
               >
                 <ChevronDown className="w-4 h-4" />
               </motion.div>
-            </motion.button>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Expandable original text and agent info */}
           <AnimatePresence>

@@ -48,9 +48,10 @@ export function GlassCard({
 
   useEffect(() => {
     setMounted(true)
-    setIsMobile(window.innerWidth < 768)
+    const touchCheck = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    setIsMobile(window.innerWidth < 768 || touchCheck)
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
+      setIsMobile(window.innerWidth < 768 || touchCheck)
     }
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
@@ -91,7 +92,7 @@ export function GlassCard({
         "transition-all duration-500 ease-out",
         hover && glowColors[glowColor],
         hover && borderColors[glowColor],
-        hover && "hover:-translate-y-1",
+        hover && !isMobile && "hover:-translate-y-1",
         className
       )}
     >
@@ -143,9 +144,10 @@ export function GlassButton({
 
   useEffect(() => {
     setMounted(true)
-    setIsMobile(window.innerWidth < 768)
+    const touchCheck = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    setIsMobile(window.innerWidth < 768 || touchCheck)
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
+      setIsMobile(window.innerWidth < 768 || touchCheck)
     }
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
@@ -180,8 +182,8 @@ export function GlassButton({
       "text-white",
       "shadow-[0_4px_24px_rgba(168,139,250,0.4)]",
       "hover:shadow-[0_8px_40px_rgba(168,139,250,0.5)]",
-      "hover:scale-[1.02]",
-      "active:scale-[0.98]"
+      "md:hover:scale-[1.02]",
+      "md:active:scale-[0.98]"
     ),
     secondary: cn(
       "bg-white/70 backdrop-blur-xl",
@@ -205,14 +207,37 @@ export function GlassButton({
     lg: "px-8 py-4 text-lg gap-3",
   }
 
+  if (isMobile && mounted) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+          baseStyles,
+          variants[variant],
+          sizes[size],
+          disabled && "opacity-50 cursor-not-allowed",
+          className
+        )}
+      >
+        {variant === "primary" && (
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-2xl" />
+        )}
+        <span className="relative z-10 flex items-center gap-2">
+          {children}
+        </span>
+      </button>
+    )
+  }
+
   return (
     <motion.button
       ref={buttonRef}
-      style={isMobile && mounted ? {} : { x, y }}
+      style={{ x, y }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      whileHover={isMobile && mounted ? undefined : { scale: disabled ? 1 : 1.02 }}
-      whileTap={isMobile && mounted ? undefined : { scale: disabled ? 1 : 0.98 }}
+      whileHover={{ scale: disabled ? 1 : 1.02 }}
+      whileTap={{ scale: disabled ? 1 : 0.98 }}
       onClick={onClick}
       disabled={disabled}
       className={cn(
