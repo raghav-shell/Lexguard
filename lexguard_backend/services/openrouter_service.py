@@ -73,6 +73,21 @@ async def generate_openrouter_response(prompt: str, content: str) -> dict:
             result = safe_json_loads(content_text)
             print(f"[OPENROUTER SUCCESS - {elapsed:.1f}s] model={model} (attempt {attempt + 1})")
             return result
+        except urllib.error.HTTPError as he:
+            error_body = ""
+            try:
+                error_body = he.read().decode('utf-8')
+            except Exception:
+                pass
+            detailed_err = f"HTTP Error {he.code} {he.reason}: {error_body}"
+            print(f"[OPENROUTER HTTP ERROR] {detailed_err}")
+            last_error = Exception(detailed_err)
+            if attempt < max_retries:
+                wait = 1.5 ** attempt
+                print(f"[OPENROUTER RETRY {attempt + 1}] Retrying in {wait:.1f}s...")
+                await asyncio.sleep(wait)
+            else:
+                print(f"[OPENROUTER FAILED] All {max_retries + 1} attempts failed.")
         except Exception as e:
             last_error = e
             if attempt < max_retries:
