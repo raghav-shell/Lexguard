@@ -199,12 +199,12 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
           </div>
 
           {/* AI Confidence & Affected Party Badges */}
-          <div className="flex items-center gap-3 mb-5">
-             <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg border border-slate-200">
+          <div className="flex flex-wrap gap-2.5 mb-5">
+             <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100/80 text-slate-600 rounded-lg border border-slate-200 flex-shrink-0">
                 <Activity className="w-3.5 h-3.5 text-violet-500" />
                 <span>AI Confidence: <span className="font-semibold">{clause.confidence_score}%</span></span>
              </div>
-             <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg border border-slate-200">
+             <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100/80 text-slate-600 rounded-lg border border-slate-200 flex-shrink-0">
                 <User className="w-3.5 h-3.5 text-blue-500" />
                 <span>Affected Party: <span className="font-semibold">{clause.affected_party}</span></span>
              </div>

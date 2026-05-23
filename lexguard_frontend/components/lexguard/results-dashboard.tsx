@@ -37,6 +37,7 @@ export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const [proposalText, setProposalText] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
+  const [mobileTab, setMobileTab] = useState<"insights" | "document">("insights")
 
   // Map verdict from backend string to VerdictLevel
   const getVerdictLevel = (backendVerdict: string): VerdictLevel => {
@@ -247,6 +248,34 @@ Best regards,
           </div>
         </motion.div>
 
+        {/* Mobile Tab Switcher */}
+        <div className="flex lg:hidden bg-white/50 border border-white/40 backdrop-blur-md p-1.5 rounded-2xl mb-8 shadow-[0_4px_20px_rgba(168,139,250,0.05)]">
+          <button
+            onClick={() => setMobileTab("insights")}
+            className={cn(
+              "flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2",
+              mobileTab === "insights"
+                ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-md shadow-violet-500/20"
+                : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <Brain className="w-4 h-4" />
+            AI Insights
+          </button>
+          <button
+            onClick={() => setMobileTab("document")}
+            className={cn(
+              "flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2",
+              mobileTab === "document"
+                ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-md shadow-violet-500/20"
+                : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            Contract Viewer
+          </button>
+        </div>
+
         {/* Main Grid Layout: Left (Contract), Right (Insights) */}
         <div className="grid lg:grid-cols-12 gap-8">
           
@@ -255,7 +284,7 @@ Best regards,
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="lg:col-span-5 h-[calc(100vh-140px)] sticky top-6"
+            className={cn("lg:col-span-5 h-[calc(100vh-140px)] lg:sticky lg:top-6", mobileTab === "document" ? "block" : "hidden lg:block")}
           >
              <ContractViewer 
                 extractedText={result.extracted_text} 
@@ -269,7 +298,7 @@ Best regards,
              initial={{ opacity: 0, x: 30 }}
              animate={{ opacity: 1, x: 0 }}
              transition={{ delay: 0.3, duration: 0.6 }}
-             className="lg:col-span-7 space-y-6"
+             className={cn("lg:col-span-7 space-y-6", mobileTab === "insights" ? "block" : "hidden lg:block")}
           >
              {/* Scores Row */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
