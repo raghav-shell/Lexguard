@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { FileText } from "lucide-react"
 import { GlassCard } from "./glass-card"
 import type { ClauseData } from "./clause-card"
+import { cn } from "@/lib/utils"
 
 interface ContractViewerProps {
   extractedText: string
@@ -55,35 +56,70 @@ export function ContractViewer({ extractedText, clauses, activeClauseId }: Contr
       }
     })
 
-    // Split by double newlines to create real paragraphs
-    const paragraphs = highlightedHTML.split(/\n\s*\n/).filter(p => p.trim() !== '')
+    // Advanced heuristic PDF text visual-reconstruction algorithm
+    const rawLines = highlightedHTML.split('\n')
+    const paragraphs: string[] = []
+    let currentParagraph = ""
 
-    return paragraphs.map((p, i) => {
-      const lines = p.split('\n')
-      let cleanParagraph = ""
-      
-      lines.forEach((line, index) => {
-        const trimmed = line.trim()
-        if (!trimmed) return
+    rawLines.forEach((line) => {
+      const trimmed = line.trim()
+      if (!trimmed) {
+        if (currentParagraph) {
+          paragraphs.push(currentParagraph)
+          currentParagraph = ""
+        }
+        return
+      }
+
+      // Heuristics to detect if this line is a heading/block boundary:
+      const isShort = trimmed.length < 45
+      const isTerminal = /[.:;?!"]$/.test(trimmed)
+      const isHeader = /^[A-Z\s\d\W]+$/.test(trimmed) || /^\d+(\.\d+)*\s+[A-Z]/.test(trimmed)
+
+      if (currentParagraph) {
+        const prevTrimmed = currentParagraph.replace(/<[^>]*>/g, '').trim() // Strip HTML tags for heuristic matching
+        const prevIsShort = prevTrimmed.length < 45
+        const prevIsTerminal = /[.:;?!"]$/.test(prevTrimmed)
         
-        if (index === 0) {
-          cleanParagraph += line
+        if (isHeader || prevIsShort || prevIsTerminal) {
+          paragraphs.push(currentParagraph)
+          currentParagraph = line
         } else {
-          // If the line starts with a list bullet, preserve the visual line break
+          // Line wrap: check if current line looks like a list item
           const isListItem = /^\s*[-*•\d+\.]/.test(trimmed)
           if (isListItem) {
-            cleanParagraph += "<br />" + line
+            currentParagraph += "<br />" + line
           } else {
-            cleanParagraph += " " + line
+            currentParagraph += " " + line
           }
         }
-      })
+      } else {
+        currentParagraph = line
+      }
+    })
+
+    if (currentParagraph) {
+      paragraphs.push(currentParagraph)
+    }
+
+    return paragraphs.map((p, i) => {
+      const trimmedText = p.replace(/<[^>]*>/g, '').trim() // Strip HTML tags to measure raw content
+      
+      // If the paragraph is short, starts with uppercase, and has no ending punctuation, treat as heading
+      const isParagraphHeader = trimmedText.length < 45 && 
+                                !/[.:;?!"]$/.test(trimmedText) && 
+                                !/^\s*[-*•]/.test(trimmedText)
 
       return (
         <p 
           key={i} 
-          className="mb-6 text-slate-700 leading-relaxed text-sm md:text-base font-serif"
-          dangerouslySetInnerHTML={{ __html: cleanParagraph }}
+          className={cn(
+            "text-slate-700 leading-relaxed font-serif transition-all duration-300",
+            isParagraphHeader 
+              ? "font-bold text-slate-900 mt-6 mb-2.5 text-base md:text-lg tracking-tight border-b border-slate-100 pb-1" 
+              : "mb-4 text-sm md:text-base"
+          )}
+          dangerouslySetInnerHTML={{ __html: p }}
         />
       )
     })
