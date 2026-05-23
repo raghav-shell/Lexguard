@@ -1,21 +1,11 @@
 "use client"
 
 import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 export function AnimatedBackground() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
-
+  
   // Smooth mouse tracking without triggering React state re-renders
   const mouseX = useMotionValue(50)
   const mouseY = useMotionValue(50)
@@ -23,7 +13,6 @@ export function AnimatedBackground() {
   const smoothY = useSpring(mouseY, { damping: 50, stiffness: 100 })
 
   useEffect(() => {
-    if (isMobile) return
     const handleMouseMove = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth) * 100
       const y = (e.clientY / window.innerHeight) * 100
@@ -33,38 +22,10 @@ export function AnimatedBackground() {
 
     window.addEventListener("mousemove", handleMouseMove)
     return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [mouseX, mouseY, isMobile])
-
-  if (isMobile) {
-    return (
-      <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Base gradient - warm and inviting, zero GPU/CPU cost */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(135deg, #faf9ff 0%, #f5f3ff 25%, #fdf2f8 50%, #f0fdfa 75%, #fef3c7 100%)'
-          }}
-        />
-        {/* Subtle noise texture for depth */}
-        <div 
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          }}
-        />
-        {/* Vignette effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at center, transparent 0%, rgba(250, 249, 255, 0.3) 100%)'
-          }}
-        />
-      </div>
-    )
-  }
+  }, [mouseX, mouseY])
 
   return (
-    <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* Base gradient - warm and inviting */}
       <div 
         className="absolute inset-0"
@@ -73,9 +34,9 @@ export function AnimatedBackground() {
         }}
       />
       
-      {/* Animated mesh gradient that responds to mouse */}
+      {/* Animated mesh gradient that responds to mouse - hidden on mobile */}
       <motion.div 
-        className="absolute inset-0 opacity-80"
+        className="absolute inset-0 opacity-80 hidden md:block"
         style={{
           background: useMotionTemplate`
             radial-gradient(ellipse 80% 60% at ${smoothX}% ${smoothY}%, rgba(168, 139, 250, 0.2), transparent 50%),
@@ -87,9 +48,9 @@ export function AnimatedBackground() {
         }}
       />
 
-      {/* Large morphing blobs with breathing animation */}
+      {/* Large morphing blobs with breathing animation - hidden on mobile */}
       <motion.div
-        className="absolute w-[700px] h-[700px] animate-blob-morph"
+        className="absolute w-[700px] h-[700px] animate-blob-morph hidden md:block"
         style={{
           top: '5%',
           left: '10%',
@@ -107,7 +68,7 @@ export function AnimatedBackground() {
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute w-[800px] h-[800px]"
+        className="absolute w-[800px] h-[800px] hidden md:block"
         style={{
           top: '30%',
           right: '5%',
@@ -126,7 +87,7 @@ export function AnimatedBackground() {
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute w-[600px] h-[600px]"
+        className="absolute w-[600px] h-[600px] hidden md:block"
         style={{
           bottom: '5%',
           left: '25%',
@@ -144,7 +105,7 @@ export function AnimatedBackground() {
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute w-[500px] h-[500px]"
+        className="absolute w-[500px] h-[500px] hidden md:block"
         style={{
           top: '60%',
           left: '0%',
@@ -162,7 +123,7 @@ export function AnimatedBackground() {
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute w-[450px] h-[450px]"
+        className="absolute w-[450px] h-[450px] hidden md:block"
         style={{
           top: '0%',
           right: '20%',
@@ -170,7 +131,7 @@ export function AnimatedBackground() {
         }}
       />
 
-      {/* Moving ambient light beams */}
+      {/* Moving ambient light beams - hidden on mobile */}
       <motion.div
         animate={{ 
           x: ['-100%', '200%'],
@@ -181,7 +142,7 @@ export function AnimatedBackground() {
           repeat: Infinity,
           ease: "linear"
         }}
-        className="absolute top-1/4 w-[300px] h-[800px] rotate-12"
+        className="absolute top-1/4 w-[300px] h-[800px] rotate-12 hidden md:block"
         style={{
           background: 'linear-gradient(90deg, transparent, rgba(168, 139, 250, 0.1), transparent)',
         }}
@@ -198,49 +159,51 @@ export function AnimatedBackground() {
           ease: "linear",
           delay: 4
         }}
-        className="absolute top-1/2 w-[200px] h-[600px] -rotate-12"
+        className="absolute top-1/2 w-[200px] h-[600px] -rotate-12 hidden md:block"
         style={{
           background: 'linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.08), transparent)',
         }}
       />
 
-      {/* Floating light particles - premium feel */}
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            y: [0, -40, 0],
-            x: [0, Math.sin(i) * 20, 0],
-            opacity: [0.2, 0.6, 0.2],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 5 + i * 0.3,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.2,
-          }}
-          className="absolute rounded-full"
-          style={{
-            width: 4 + (i % 4) * 2,
-            height: 4 + (i % 4) * 2,
-            left: `${5 + i * 4.5}%`,
-            top: `${15 + (i % 5) * 18}%`,
-            background: i % 4 === 0 
-              ? 'rgba(168, 139, 250, 0.5)' 
-              : i % 4 === 1
-                ? 'rgba(244, 114, 182, 0.4)'
-                : i % 4 === 2
-                  ? 'rgba(34, 211, 238, 0.4)'
-                  : 'rgba(52, 211, 153, 0.35)',
-            boxShadow: i % 3 === 0 ? '0 0 10px rgba(168, 139, 250, 0.5)' : 'none',
-          }}
-        />
-      ))}
+      {/* Floating light particles - hidden on mobile */}
+      <div className="hidden md:block">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              y: [0, -40, 0],
+              x: [0, Math.sin(i) * 20, 0],
+              opacity: [0.2, 0.6, 0.2],
+              scale: [1, 1.3, 1],
+            }}
+            transition={{
+              duration: 5 + i * 0.3,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.2,
+            }}
+            className="absolute rounded-full"
+            style={{
+              width: 4 + (i % 4) * 2,
+              height: 4 + (i % 4) * 2,
+              left: `${5 + i * 4.5}%`,
+              top: `${15 + (i % 5) * 18}%`,
+              background: i % 4 === 0 
+                ? 'rgba(168, 139, 250, 0.5)' 
+                : i % 4 === 1
+                  ? 'rgba(244, 114, 182, 0.4)'
+                  : i % 4 === 2
+                    ? 'rgba(34, 211, 238, 0.4)'
+                    : 'rgba(52, 211, 153, 0.35)',
+              boxShadow: i % 3 === 0 ? '0 0 10px rgba(168, 139, 250, 0.5)' : 'none',
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Subtle animated grid overlay */}
+      {/* Subtle animated grid overlay - hidden on mobile */}
       <motion.div 
-        className="absolute inset-0 opacity-[0.025]"
+        className="absolute inset-0 opacity-[0.025] hidden md:block"
         animate={{
           backgroundPosition: ['0px 0px', '60px 60px'],
         }}
