@@ -68,7 +68,11 @@ export function ContractViewer({ extractedText, clauses, activeClauseId }: Contr
   }
 
   return (
-    <GlassCard className="h-full max-h-[800px] flex flex-col overflow-hidden border border-white/40 shadow-[0_8px_32px_rgba(168,139,250,0.1)]" hover={false}>
+    <GlassCard 
+      className="h-full max-h-[800px] flex flex-col overflow-hidden border border-white/40 shadow-[0_8px_32px_rgba(168,139,250,0.1)]" 
+      contentClassName="h-full flex flex-col flex-1 overflow-hidden"
+      hover={false}
+    >
       <div className="p-5 border-b border-white/20 bg-white/40 backdrop-blur-md flex items-center justify-between z-10 sticky top-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center shadow-inner">

@@ -8,6 +8,7 @@ import { useRef } from "react"
 interface GlassCardProps {
   children: ReactNode
   className?: string
+  contentClassName?: string
   glowColor?: "lavender" | "pink" | "cyan" | "emerald" | "amber" | "rose"
   hover?: boolean
   delay?: number
@@ -35,6 +36,7 @@ const borderColors = {
 export function GlassCard({ 
   children, 
   className, 
+  contentClassName,
   glowColor = "lavender",
   hover = true,
   delay = 0,
@@ -98,7 +100,7 @@ export function GlassCard({
       </motion.div>
       
       {/* Content */}
-      <div className="relative z-10 group">
+      <div className={cn("relative z-10 group", contentClassName)}>
         {children}
       </div>
     </motion.div>
