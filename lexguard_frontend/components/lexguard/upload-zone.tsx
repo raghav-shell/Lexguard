@@ -238,7 +238,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                       ))}
                     </div>
 
-                    <div className="relative inline-block overflow-hidden">
+                    <div className="relative inline-block overflow-hidden group">
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -246,10 +246,29 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                         className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
                         ref={fileInputRef}
                       />
-                      <GlassButton variant="secondary">
-                        <FileText className="w-4 h-4" />
-                        Browse Files
-                      </GlassButton>
+                      {/* Premium gradient Browse Files button */}
+                      <div
+                        className={cn(
+                          "relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-semibold text-base overflow-hidden",
+                          "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white",
+                          "shadow-[0_4px_24px_rgba(168,139,250,0.45)]",
+                          "transition-all duration-300",
+                          "group-hover:shadow-[0_8px_40px_rgba(168,139,250,0.6)]",
+                          "group-hover:scale-[1.03]",
+                          "group-active:scale-[0.97]"
+                        )}
+                      >
+                        {/* Shimmer sweep */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none"
+                          animate={{ x: ["-100%", "100%"] }}
+                          transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.5 }}
+                        />
+                        {/* Glossy top reflection */}
+                        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-2xl pointer-events-none" />
+                        <FileText className="w-4 h-4 relative z-10" />
+                        <span className="relative z-10">Browse Files</span>
+                      </div>
                     </div>
                   </motion.div>
                 ) : (
