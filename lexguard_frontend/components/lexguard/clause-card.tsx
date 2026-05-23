@@ -195,7 +195,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
             </motion.div>
             
             <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-800 leading-snug group-hover:text-slate-900 transition-colors pt-0.5">
-              {clause.plain_english}
+              {clause.original_clause}
             </h3>
           </div>
 
@@ -279,7 +279,7 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
               whileTap={{ scale: 0.98 }}
             >
               <Sparkles className="w-4 h-4" />
-              <span>{isExpanded ? "Hide Details" : "View Agent Details & Original Clause"}</span>
+              <span>{isExpanded ? "Hide Details" : "View Agent Details & Plain English"}</span>
               <motion.div
                 animate={{ rotate: isExpanded ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
@@ -310,10 +310,10 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
                   </div>
                 </div>
 
-                {clause.original_clause && (
+                {clause.plain_english && (
                     <div className="p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs leading-relaxed">
-                      <div className="text-slate-500 mb-2">// Original Contract Text</div>
-                      {clause.original_clause}
+                      <div className="text-slate-500 mb-2">// Plain English Translation</div>
+                      {clause.plain_english}
                     </div>
                 )}
               </motion.div>
