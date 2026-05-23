@@ -27,13 +27,20 @@ export function ContractViewer({ extractedText, clauses, activeClauseId }: Contr
     sortedClauses.forEach((clause) => {
       if (clause.original_clause) {
         // Create a unique placeholder to avoid nested replacements
-        const isCritical = clause.severity === 'critical'
-        const isHigh = clause.severity === 'high'
+        const severity = (clause.severity || 'medium').toLowerCase()
+        const isCritical = severity === 'critical'
+        const isHigh = severity === 'high'
+        const isLow = severity === 'low'
         
         // Define color classes based on severity
-        let highlightClass = "bg-amber-100 text-amber-900 border-b-2 border-amber-300" // default medium/low
-        if (isCritical) highlightClass = "bg-rose-200 text-rose-900 border-b-2 border-rose-400 font-medium"
-        if (isHigh) highlightClass = "bg-rose-100 text-rose-800 border-b-2 border-rose-300"
+        let highlightClass = "bg-amber-100 text-amber-900 border-b-2 border-amber-300" // default medium
+        if (isCritical) {
+          highlightClass = "bg-rose-200 text-rose-900 border-b-2 border-rose-400 font-medium"
+        } else if (isHigh) {
+          highlightClass = "bg-rose-100 text-rose-800 border-b-2 border-rose-300"
+        } else if (isLow) {
+          highlightClass = "bg-emerald-100 text-emerald-900 border-b-2 border-emerald-300"
+        }
         
         const isActive = activeClauseId === clause.clause_id
         if (isActive) {
