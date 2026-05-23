@@ -229,6 +229,7 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
                     cx="48"
                     cy="48"
                     r="40"
+                    stroke="currentColor"
                     strokeWidth="8"
                     fill="none"
                     strokeLinecap="round"
