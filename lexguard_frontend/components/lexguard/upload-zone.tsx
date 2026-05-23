@@ -109,7 +109,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
             animate={isDragOver ? { scale: 1.02 } : { scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className={cn(
-              "relative rounded-3xl p-14 transition-all duration-500",
+              "relative rounded-3xl p-6 sm:p-14 transition-all duration-500",
               "bg-white/60 backdrop-blur-xl",
               "border-2 border-dashed",
               isDragOver 
@@ -256,7 +256,7 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                   >
                     {/* File preview with animations */}
                     <motion.div 
-                      className="inline-flex items-center gap-5 px-7 py-5 rounded-2xl bg-white/80 border border-white/60 shadow-[0_8px_30px_rgba(168,139,250,0.15)] relative overflow-hidden"
+                      className="inline-flex items-center gap-3 sm:gap-5 px-4 py-3 sm:px-7 sm:py-5 rounded-2xl bg-white/80 border border-white/60 shadow-[0_8px_30px_rgba(168,139,250,0.15)] relative overflow-hidden max-w-full"
                       initial={{ y: 15 }}
                       animate={{ y: 0 }}
                     >
@@ -265,23 +265,23 @@ export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring" }}
-                        className="absolute top-3 right-3"
+                        className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3"
                       >
-                        <CheckCircle className="w-5 h-5 text-emerald-500" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
                       </motion.div>
 
                       <motion.div 
-                        className="w-16 h-16 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center"
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center flex-shrink-0"
                         animate={{ rotate: [0, 3, -3, 0] }}
                         transition={{ duration: 4, repeat: Infinity }}
                       >
-                        <FileText className="w-8 h-8 text-violet-500" />
+                        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-violet-500" />
                       </motion.div>
-                      <div className="text-left">
-                        <div className="text-slate-700 font-semibold truncate max-w-[220px]">
+                      <div className="text-left min-w-0 flex-1">
+                        <div className="text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-[220px]">
                           {file.name}
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-xs sm:text-sm text-slate-400">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </div>
                       </div>
