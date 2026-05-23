@@ -238,7 +238,6 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
                     animate={{ pathLength: score / 100 }}
                     transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
                     style={{
-                      strokeDasharray: 251.2,
                       filter: `drop-shadow(0 0 6px ${config.glow})`,
                     }}
                   />
