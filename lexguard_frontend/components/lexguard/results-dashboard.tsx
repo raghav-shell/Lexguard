@@ -7,7 +7,7 @@ import { ClauseCard, type ClauseData } from "./clause-card"
 import { VerdictPanel, type VerdictLevel } from "./verdict-panel"
 import { ContractViewer } from "./contract-viewer"
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
 
 export interface BackendAnalysisResponse {
@@ -32,12 +32,120 @@ interface ResultsDashboardProps {
   onBack: () => void
 }
 
+// Helper function to find the best fuzzy substring match in the document text for a given query clause
+function findBestFuzzyMatch(documentText: string, searchClause: string): string | null {
+  if (!documentText || !searchClause) return null
+
+  // Normalize a string to a list of clean, lowercase words
+  const getWords = (str: string): string[] => {
+    return str
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // replace punctuation with spaces
+      .split(/\s+/)
+      .filter(w => w.length > 0)
+  }
+
+  const searchWords = getWords(searchClause)
+  if (searchWords.length === 0) return null
+
+  // Split documentText into candidate segments while tracking their exact character positions
+  const segments: { text: string; startIdx: number; endIdx: number }[] = []
+  
+  let currentIdx = 0
+  const lines = documentText.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const lineStart = currentIdx
+    const lineEnd = currentIdx + line.length
+    
+    // Split the line into sentences
+    const sentences = line.split(/(?<=[.!?])\s+/)
+    let sentenceStartInLine = 0
+    
+    for (let j = 0; j < sentences.length; j++) {
+      const sentence = sentences[j]
+      const trimmed = sentence.trim()
+      if (trimmed) {
+        const sentenceIdx = line.indexOf(trimmed, sentenceStartInLine)
+        if (sentenceIdx !== -1) {
+          segments.push({
+            text: trimmed,
+            startIdx: lineStart + sentenceIdx,
+            endIdx: lineStart + sentenceIdx + trimmed.length
+          })
+          sentenceStartInLine = sentenceIdx + trimmed.length
+        }
+      }
+    }
+    
+    currentIdx = lineEnd + 1 // +1 for the newline character
+  }
+
+  if (segments.length === 0) return null
+
+  let bestMatch: string | null = null
+  let bestScore = 0
+  const maxWindowSize = 4 // check windows of 1 to 4 segments to cover multi-line or long clauses
+
+  for (let w = 1; w <= maxWindowSize; w++) {
+    for (let i = 0; i <= segments.length - w; i++) {
+      const windowSegments = segments.slice(i, i + w)
+      
+      // Get the exact raw text in documentText between start of first segment and end of last segment
+      const startIdx = windowSegments[0].startIdx
+      const endIdx = windowSegments[windowSegments.length - 1].endIdx
+      const rawTextMatch = documentText.substring(startIdx, endIdx)
+
+      const candidateWords = getWords(rawTextMatch)
+      if (candidateWords.length === 0) continue
+
+      // Calculate word overlap
+      const candidateWordSet = new Set(candidateWords)
+      let overlapCount = 0
+      searchWords.forEach(word => {
+        if (candidateWordSet.has(word)) {
+          overlapCount++
+        }
+      })
+
+      const recall = overlapCount / searchWords.length
+      const precision = overlapCount / candidateWordSet.size
+      
+      // F1-like score with high weight on recall (since LLM quotes might be subsets/paraphrases)
+      const score = recall * 0.85 + precision * 0.15
+
+      // Only consider if recall is high enough (at least 60% of search words are matched)
+      if (recall >= 0.6 && score > bestScore) {
+        bestScore = score
+        bestMatch = rawTextMatch
+      }
+    }
+  }
+
+  // Return the best match if it has a high score, otherwise fallback
+  return bestScore >= 0.6 ? bestMatch : null
+}
+
 export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
   const [activeClauseId, setActiveClauseId] = useState<string | null>(null)
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const [proposalText, setProposalText] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
   const [mobileTab, setMobileTab] = useState<"insights" | "document">("insights")
+
+  // Align AI-extracted clause quotes with exact document text using fuzzy matching
+  const processedClauses = useMemo(() => {
+    return result.clauses.map(clause => {
+      const matchedText = findBestFuzzyMatch(result.extracted_text, clause.original_clause)
+      if (matchedText) {
+        return {
+          ...clause,
+          original_clause: matchedText
+        }
+      }
+      return clause
+    })
+  }, [result.clauses, result.extracted_text])
 
   // Map verdict from backend string to VerdictLevel
   const getVerdictLevel = (backendVerdict: string): VerdictLevel => {
@@ -288,7 +396,7 @@ Best regards,
           >
              <ContractViewer 
                 extractedText={result.extracted_text} 
-                clauses={result.clauses} 
+                clauses={processedClauses} 
                 activeClauseId={activeClauseId}
              />
           </motion.div>
@@ -388,13 +496,13 @@ Best regards,
                     <h2 className="text-xl font-semibold text-slate-800">Flagged Clauses</h2>
                 </div>
                 <span className="text-sm text-slate-400 bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50 shadow-sm">
-                    {result.clauses.length} issues found
+                    {processedClauses.length} issues found
                 </span>
              </div>
 
              {/* Clauses List */}
              <div className="space-y-5">
-                 {result.clauses.map((clause, index) => (
+                 {processedClauses.map((clause, index) => (
                     <div 
                       key={clause.clause_id} 
                       onMouseEnter={() => setActiveClauseId(clause.clause_id)}
