@@ -209,8 +209,8 @@ export function VerdictPanel({ verdict, score, summary }: VerdictPanelProps) {
             </div>
 
             {/* Animated Risk Score Circle */}
-            <div className="text-right relative">
-              <div className="text-sm text-slate-400 uppercase tracking-wider mb-2 font-medium">
+            <div className="flex flex-col items-start xs:items-end relative">
+              <div className="text-sm text-slate-400 uppercase tracking-wider mb-2 font-medium text-left xs:text-right">
                 Risk Score
               </div>
               <div className="relative w-24 h-24">
