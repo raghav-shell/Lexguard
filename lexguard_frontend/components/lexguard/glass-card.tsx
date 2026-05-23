@@ -3,7 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
 import { cn } from "@/lib/utils"
 import type { ReactNode } from "react"
-import { useRef } from "react"
+import { useRef, useState, useEffect } from "react"
 
 interface GlassCardProps {
   children: ReactNode
@@ -43,6 +43,17 @@ export function GlassCard({
   tilt = false
 }: GlassCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
 
@@ -50,7 +61,7 @@ export function GlassCard({
   const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-5, 5]), { damping: 30, stiffness: 200 })
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!tilt || !cardRef.current) return
+    if (!tilt || isMobile || !cardRef.current) return
     const rect = cardRef.current.getBoundingClientRect()
     mouseX.set((e.clientX - rect.left) / rect.width - 0.5)
     mouseY.set((e.clientY - rect.top) / rect.height - 0.5)
@@ -69,7 +80,7 @@ export function GlassCard({
       transition={{ duration: 0.6, delay, ease: [0.23, 1, 0.32, 1] }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={tilt ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
+      style={tilt && !isMobile ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
       className={cn(
         "relative rounded-3xl",
         "bg-white/60 backdrop-blur-xl",
@@ -125,6 +136,17 @@ export function GlassButton({
   disabled
 }: GlassButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   
@@ -133,7 +155,7 @@ export function GlassButton({
   const y = useSpring(mouseY, springConfig)
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!buttonRef.current || disabled) return
+    if (isMobile || !buttonRef.current || disabled) return
     const rect = buttonRef.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
     const centerY = rect.top + rect.height / 2
@@ -182,7 +204,7 @@ export function GlassButton({
   return (
     <motion.button
       ref={buttonRef}
-      style={{ x, y }}
+      style={isMobile ? {} : { x, y }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       whileHover={{ scale: disabled ? 1 : 1.02 }}

@@ -1,11 +1,21 @@
 "use client"
 
 import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export function AnimatedBackground() {
   const containerRef = useRef<HTMLDivElement>(null)
-  
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
   // Smooth mouse tracking without triggering React state re-renders
   const mouseX = useMotionValue(50)
   const mouseY = useMotionValue(50)
@@ -13,6 +23,7 @@ export function AnimatedBackground() {
   const smoothY = useSpring(mouseY, { damping: 50, stiffness: 100 })
 
   useEffect(() => {
+    if (isMobile) return
     const handleMouseMove = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth) * 100
       const y = (e.clientY / window.innerHeight) * 100
@@ -22,7 +33,35 @@ export function AnimatedBackground() {
 
     window.addEventListener("mousemove", handleMouseMove)
     return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [mouseX, mouseY])
+  }, [mouseX, mouseY, isMobile])
+
+  if (isMobile) {
+    return (
+      <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Base gradient - warm and inviting, zero GPU/CPU cost */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #faf9ff 0%, #f5f3ff 25%, #fdf2f8 50%, #f0fdfa 75%, #fef3c7 100%)'
+          }}
+        />
+        {/* Subtle noise texture for depth */}
+        <div 
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          }}
+        />
+        {/* Vignette effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 0%, rgba(250, 249, 255, 0.3) 100%)'
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none">
