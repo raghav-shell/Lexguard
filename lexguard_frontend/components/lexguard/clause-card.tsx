@@ -144,43 +144,16 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
           }}
           className="p-6 relative"
         >
-          {/* Header */}
-          <div className="flex items-start justify-between mb-5">
-            <div className="flex items-center gap-4">
-              <motion.div 
-                className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center relative flex-shrink-0",
-                  config.iconBg
-                )}
-                whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-              >
-                {/* Icon glow */}
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 rounded-2xl"
-                  style={{
-                    background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
-                    filter: 'blur(8px)',
-                  }}
-                />
-                <Icon className={cn("w-7 h-7 relative z-10", config.text)} />
-              </motion.div>
-              <div>
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-medium">
-                  {clause.clause_type}
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
-                  {clause.plain_english}
-                </h3>
-              </div>
-            </div>
+          {/* Category & Severity Badge Row */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold truncate max-w-[180px] xs:max-w-[240px]">
+              {clause.clause_type}
+            </span>
             
             {/* Severity badge with pulse */}
             <motion.div 
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border relative overflow-hidden flex-shrink-0",
+                "flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-semibold border relative overflow-hidden flex-shrink-0",
                 config.bg, config.border, config.text
               )}
               whileHover={{ scale: 1.05 }}
@@ -196,6 +169,34 @@ export function ClauseCard({ clause, index, onClick }: ClauseCardProps) {
               <SeverityIcon className="w-3.5 h-3.5" />
               {config.label}
             </motion.div>
+          </div>
+
+          {/* Icon & Title Row */}
+          <div className="flex items-start gap-3 sm:gap-4 mb-5">
+            <motion.div 
+              className={cn(
+                "w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center relative flex-shrink-0",
+                config.iconBg
+              )}
+              whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Icon glow */}
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 rounded-xl sm:rounded-2xl"
+                style={{
+                  background: `radial-gradient(circle, ${config.pulseColor} 0%, transparent 70%)`,
+                  filter: 'blur(8px)',
+                }}
+              />
+              <Icon className={cn("w-5.5 h-5.5 sm:w-7 sm:h-7 relative z-10", config.text)} />
+            </motion.div>
+            
+            <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-800 leading-snug group-hover:text-slate-900 transition-colors pt-0.5">
+              {clause.plain_english}
+            </h3>
           </div>
 
           {/* AI Confidence & Affected Party Badges */}
