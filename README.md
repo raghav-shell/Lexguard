@@ -12,10 +12,10 @@
   <a href="https://lexguard-frontend-seven.vercel.app/" target="_blank">
     <img src="https://img.shields.io/badge/Vercel_Web_App-Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
   </a>
-  <a href="https://lexguard-backend.onrender.com/" target="_blank">
+  <a href="https://lexguard-backend-w5k1.onrender.com/" target="_blank">
     <img src="https://img.shields.io/badge/Render_API_Host-Active-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Backend API" />
   </a>
-  <a href="https://lexguard-backend.onrender.com/health" target="_blank">
+  <a href="https://lexguard-backend-w5k1.onrender.com/health" target="_blank">
     <img src="https://img.shields.io/badge/API_Health_Check-Healthy-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Health Check" />
   </a>
 </p>
@@ -298,7 +298,7 @@ Deploying to production is completely automated. Follow these quick specs:
 ### Next.js Frontend on Vercel
 1.  **Framework Preset:** `Next.js`
 2.  **Root Directory:** `lexguard_frontend`
-3.  **Environment Variables:** Add `NEXT_PUBLIC_API_URL` pointing to your active Render web service (e.g., `https://lexguard-backend.onrender.com`).
+3.  **Environment Variables:** Add `NEXT_PUBLIC_API_URL` pointing to your active Render web service (e.g., `https://lexguard-backend-w5k1.onrender.com`).
 
 *For deep details, step-by-step screenshots, and troubleshooting diagnostics, review the full [📋 DEPLOYMENT.md](./DEPLOYMENT.md).*
 

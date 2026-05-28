@@ -106,7 +106,7 @@ Expand the **Environment Variables** section and add the following variable:
 
 | Key | Value | Description |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | `https://lexguard-backend.onrender.com` | Your live Render backend URL (no trailing slash) |
+| `NEXT_PUBLIC_API_URL` | `https://lexguard-backend-w5k1.onrender.com` | Your live Render backend URL (no trailing slash) |
 
 > [!IMPORTANT]
 > **Consistent Variable Naming**: Make sure to use **`NEXT_PUBLIC_API_URL`**! The frontend has been hardened to look for this variable to know where the Render backend resides. If omitted, the frontend defaults to `http://127.0.0.1:8000` (which fails in production).
