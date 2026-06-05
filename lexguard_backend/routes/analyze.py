@@ -42,6 +42,7 @@ async def progressive_status_updates():
 @router.post("/analyze-contract")
 async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     global analysis_status
+    analysis_status["stage"] = "Extracting legal text..."
 
     # 1. File type validation
     allowed_types = ('.pdf', '.doc', '.docx')
