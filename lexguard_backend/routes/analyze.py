@@ -54,8 +54,8 @@ async def analyze_contract(background_tasks: BackgroundTasks, file: UploadFile =
     if len(file_bytes) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is 10MB.")
 
-    # Start progressive status updates in background
-    background_tasks.add_task(progressive_status_updates)
+    # Start progressive status updates in background concurrently
+    asyncio.create_task(progressive_status_updates())
 
     try:
         # 3. Extract Text
