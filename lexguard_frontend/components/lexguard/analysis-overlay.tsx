@@ -7,7 +7,8 @@ import { useEffect, useState, useRef } from "react"
 interface AnalysisOverlayProps {
   isVisible: boolean
   statusMessage: string
-  onComplete?: () => void // Optional now, since we control completion from parent
+  isComplete: boolean
+  onComplete?: () => void
 }
 
 const analysisSteps = [
@@ -21,8 +22,7 @@ const analysisSteps = [
   { text: "Preparing comprehensive report...", icon: CheckCircle, color: "emerald" },
 ]
 
-export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: AnalysisOverlayProps) {
-  const [currentStep, setCurrentStep] = useState(0)
+export function AnalysisOverlay({ isVisible, statusMessage, isComplete, onComplete }: AnalysisOverlayProps) {
   const [progress, setProgress] = useState(0)
   const [displayText, setDisplayText] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -47,43 +47,75 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
     return () => clearInterval(typingInterval)
   }, [statusMessage, isVisible])
 
+  // Calculate target progress based on statusMessage
+  const getTargetProgress = (message: string): number => {
+    const msg = message.toLowerCase()
+    if (msg.includes("uploading")) return 10
+    if (msg.includes("extracting")) return 20
+    if (msg.includes("boundary") || msg.includes("boundaries")) return 30
+    if (msg.includes("employment")) return 40
+    if (msg.includes("privacy")) return 50
+    if (msg.includes("financial") || msg.includes("liability")) return 60
+    if (msg.includes("intellectual") || msg.includes("property")) return 70
+    if (msg.includes("fairness")) return 80
+    if (msg.includes("synthesizing") || msg.includes("risk")) return 85
+    if (msg.includes("consequence")) return 90
+    if (msg.includes("finalizing") || msg.includes("json")) return 95
+    return 5
+  }
+
+  const targetProgress = getTargetProgress(statusMessage)
+
   useEffect(() => {
     if (!isVisible) {
-      setCurrentStep(0)
       setProgress(0)
       return
     }
 
-    const stepDuration = 900
-    const totalSteps = analysisSteps.length
+    let intervalId: NodeJS.Timeout
 
-    const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev < totalSteps - 1) {
-          return prev + 1
-        }
-        return prev
-      })
-    }, stepDuration)
-
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + 1
-        if (newProgress >= 100) {
-          clearInterval(progressInterval)
-          clearInterval(stepInterval)
-          setTimeout(() => onComplete?.(), 600)
-          return 100
-        }
-        return newProgress
-      })
-    }, 70)
-
-    return () => {
-      clearInterval(stepInterval)
-      clearInterval(progressInterval)
+    if (isComplete) {
+      // If complete, animate to 100 quickly
+      intervalId = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(intervalId)
+            setTimeout(() => {
+              onComplete?.()
+            }, 600)
+            return 100
+          }
+          // Increment faster to reach 100%
+          const step = Math.max(2, Math.ceil((100 - prev) / 5))
+          return Math.min(100, prev + step)
+        })
+      }, 30)
+    } else {
+      // Normal loading animation: increment towards targetProgress
+      intervalId = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < targetProgress) {
+            // Catch up to target progress
+            const diff = targetProgress - prev
+            const step = Math.max(0.5, diff / 15) // Smooth ease-out towards target
+            return prev + step
+          } else if (prev < 95) {
+            // Slow crawl if we hit the target but the backend hasn't moved to the next step
+            return prev + 0.05
+          }
+          return prev
+        })
+      }, 50)
     }
-  }, [isVisible, onComplete])
+
+    return () => clearInterval(intervalId)
+  }, [isVisible, isComplete, targetProgress, onComplete])
+
+  // Sync currentStep with progress
+  const currentStep = Math.min(
+    Math.floor((progress / 100) * analysisSteps.length),
+    analysisSteps.length - 1
+  )
 
   return (
     <AnimatePresence>
@@ -448,9 +480,9 @@ export function AnalysisOverlay({ isVisible, statusMessage, onComplete }: Analys
             >
               <motion.span 
                 className="font-bold text-lg text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-pink-500"
-                key={progress}
+                key={Math.round(progress)}
               >
-                {progress}%
+                {Math.round(progress)}%
               </motion.span>
               <span className="ml-2">Complete</span>
             </motion.div>

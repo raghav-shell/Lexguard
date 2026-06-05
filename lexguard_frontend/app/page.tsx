@@ -123,6 +123,7 @@ export default function LexguardPage() {
     (BackendAnalysisResponse & { fileName: string; analyzedAt: Date }) | null
   >(null)
   const [statusMessage, setStatusMessage] = useState("Initializing AI Core...")
+  const [isAnalysisComplete, setIsAnalysisComplete] = useState(false)
   const uploadRef = useRef<HTMLDivElement>(null)
 
   const handleUploadClick = useCallback(() => {
@@ -145,6 +146,7 @@ export default function LexguardPage() {
 
   const handleFileUpload = useCallback(async (file: File) => {
     setUploadedFile(file)
+    setIsAnalysisComplete(false)
     setAppState("analyzing")
     setStatusMessage("Uploading document for analysis...")
 
@@ -199,16 +201,13 @@ export default function LexguardPage() {
 
       const data: BackendAnalysisResponse = await response.json()
 
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        setAnalysisResult({
-          ...data,
-          fileName: file.name,
-          analyzedAt: new Date(),
-        })
-        window.scrollTo({ top: 0, behavior: "instant" })
-        setAppState("results")
-      }, 800)
+      clearInterval(pollInterval)
+      setAnalysisResult({
+        ...data,
+        fileName: file.name,
+        analyzedAt: new Date(),
+      })
+      setIsAnalysisComplete(true)
     } catch (error) {
       console.error("Analysis failed:", error)
       clearInterval(pollInterval)
@@ -222,12 +221,20 @@ export default function LexguardPage() {
     setUploadedFile(null)
     setAnalysisResult(null)
     setErrorType(null)
+    setIsAnalysisComplete(false)
   }, [])
 
   const handleRetry = useCallback(() => {
     setErrorType(null)
     setAppState("landing")
     setUploadedFile(null)
+    setIsAnalysisComplete(false)
+  }, [])
+
+  const handleAnalysisOverlayComplete = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "instant" })
+    setAppState("results")
+    setIsAnalysisComplete(false)
   }, [])
 
   return (
@@ -259,9 +266,12 @@ export default function LexguardPage() {
         <ResultsDashboard result={analysisResult} onBack={handleBack} />
       )}
 
-      {appState === "analyzing" && (
-        <AnalysisOverlay isVisible={appState === "analyzing"} statusMessage={statusMessage} />
-      )}
+      <AnalysisOverlay
+        isVisible={appState === "analyzing"}
+        statusMessage={statusMessage}
+        isComplete={isAnalysisComplete}
+        onComplete={handleAnalysisOverlayComplete}
+      />
 
       {appState === "error" && <ErrorState type={errorType} onRetry={handleRetry} />}
     </main>
