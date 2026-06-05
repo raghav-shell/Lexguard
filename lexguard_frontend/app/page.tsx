@@ -202,6 +202,7 @@ export default function LexguardPage() {
       const data: BackendAnalysisResponse = await response.json()
 
       clearInterval(pollInterval)
+      setStatusMessage("Analysis Complete! Preparing your dashboard...")
       setAnalysisResult({
         ...data,
         fileName: file.name,

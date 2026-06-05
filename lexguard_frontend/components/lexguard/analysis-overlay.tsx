@@ -80,9 +80,6 @@ export function AnalysisOverlay({ isVisible, statusMessage, isComplete, onComple
         setProgress((prev) => {
           if (prev >= 100) {
             clearInterval(intervalId)
-            setTimeout(() => {
-              onComplete?.()
-            }, 600)
             return 100
           }
           // Increment faster to reach 100%
@@ -109,7 +106,17 @@ export function AnalysisOverlay({ isVisible, statusMessage, isComplete, onComple
     }
 
     return () => clearInterval(intervalId)
-  }, [isVisible, isComplete, targetProgress, onComplete])
+  }, [isVisible, isComplete, targetProgress])
+
+  // Trigger onComplete declaratively when progress is 100% and the text has finished typing
+  useEffect(() => {
+    if (isComplete && progress >= 100 && displayText === statusMessage) {
+      const delayTimeout = setTimeout(() => {
+        onComplete?.()
+      }, 600)
+      return () => clearTimeout(delayTimeout)
+    }
+  }, [isComplete, progress, displayText, statusMessage, onComplete])
 
   // Sync currentStep with progress
   const currentStep = Math.min(
