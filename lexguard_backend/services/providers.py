@@ -15,28 +15,49 @@ RETRYABLE = {408, 429, 500, 502, 503, 504}
 class ProviderRequestError(ValueError):
     """Carry only a safe HTTP status, never provider bodies or credentials."""
 
-    def __init__(self, status_code: int):
+    def __init__(self, status_code: int, reason: str = "request_rejected"):
         super().__init__("Provider rejected request")
         self.status_code = status_code
+        self.reason = reason
+
+
+def rejection_reason(body: bytes) -> str:
+    """Classify failures into fixed labels; never propagate provider error text."""
+    try:
+        error = json.loads(body).get("error", {})
+        message = str(error.get("message", "")).lower()
+        details = error.get("details", [])
+        reasons = {d.get("reason") for d in details if isinstance(d, dict)} if isinstance(details, list) else set()
+    except (ValueError, AttributeError, TypeError):
+        return "request_rejected"
+    if reasons & {"API_KEY_INVALID", "API_KEY_EXPIRED", "API_KEY_SERVICE_BLOCKED", "CONSUMER_INVALID"} or "api key not valid" in message or "api key expired" in message:
+        return "invalid_credentials"
+    if "schema" in message or "generation_config" in message:
+        return "invalid_schema"
+    if "no endpoints" in message or "not a valid model" in message or "model not found" in message:
+        return "model_unavailable"
+    if "credit" in message or "quota" in message or "billing" in message:
+        return "quota_or_billing"
+    return "request_rejected"
 
 
 async def _post(client: httpx.AsyncClient, url: str, headers: dict, payload: dict) -> dict:
     for attempt in range(2):
         try:
             async with client.stream("POST", url, headers=headers, json=payload) as response:
-                response.raise_for_status()
                 body = bytearray()
                 async for part in response.aiter_bytes():
                     body.extend(part)
                     if len(body) > 512000:
                         raise ValueError("Provider response too large")
+                response.raise_for_status()
                 result = json.loads(body)
                 if not isinstance(result, dict):
                     raise ValueError("Unexpected provider response")
                 return result
         except httpx.HTTPStatusError as error:
             if attempt or error.response.status_code not in RETRYABLE:
-                raise ProviderRequestError(error.response.status_code) from None
+                raise ProviderRequestError(error.response.status_code, rejection_reason(body)) from None
         except httpx.TransportError:
             if attempt:
                 raise ValueError("Provider connection failed") from None

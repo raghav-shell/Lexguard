@@ -65,6 +65,18 @@ def analysis(quote="Liability is unlimited.", severity="high", score=8, confiden
 
 
 class ContractTests(unittest.TestCase):
+    def test_provider_rejection_labels_never_include_response_content(self):
+        for error, expected in [
+            ({"message": "private text", "details": [{"reason": "API_KEY_INVALID"}]}, "invalid_credentials"),
+            ({"message": "Invalid response schema: private text"}, "invalid_schema"),
+            ({"message": "No endpoints found for private model"}, "model_unavailable"),
+            ({"message": "Insufficient credits: private text"}, "quota_or_billing"),
+            ({"message": "private text"}, "request_rejected"),
+            ("private text", "request_rejected"),
+        ]:
+            self.assertEqual(providers.rejection_reason(json.dumps({"error":error}).encode()), expected)
+        self.assertEqual(providers.rejection_reason(b"not json"), "request_rejected")
+
     def test_valid_json_quote_is_never_rewritten(self):
         self.assertEqual(safe_json_loads(json.dumps({"quote": "Pay, } remains due."}))["quote"], "Pay, } remains due.")
         self.assertEqual(safe_json_loads(' ```json\n{"ok": true}\n``` '), {"ok": True})
