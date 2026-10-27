@@ -43,8 +43,10 @@ async def build_super_analysis(document: dict, context: ReviewContext, request_i
                         if clause.severity != expected:
                             raise ValueError("Inconsistent risk magnitude and severity")
                     return name, analysis, clauses
-                except (ValueError, KeyError, IndexError, TypeError, TimeoutError, httpx.HTTPError):
-                    logger.warning("provider_attempt_failed request_id=%s provider=%s", request_id, name)
+                except (ValueError, KeyError, IndexError, TypeError, TimeoutError, httpx.HTTPError) as error:
+                    logger.warning("provider_attempt_failed request_id=%s provider=%s error_type=%s http_status=%s",
+                                   request_id, name, type(error).__name__,
+                                   error.status_code if isinstance(error, providers.ProviderRequestError) else "none")
             raise AppError(502, "analysis_unavailable", "The AI providers could not return a complete, source-verified analysis. Please retry later. No sample findings have been substituted.")
 
     tasks = [asyncio.create_task(analyze_batch(batch)) for batch in batches]

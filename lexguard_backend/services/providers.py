@@ -12,6 +12,14 @@ logger = logging.getLogger("lexguard.providers")
 RETRYABLE = {408, 429, 500, 502, 503, 504}
 
 
+class ProviderRequestError(ValueError):
+    """Carry only a safe HTTP status, never provider bodies or credentials."""
+
+    def __init__(self, status_code: int):
+        super().__init__("Provider rejected request")
+        self.status_code = status_code
+
+
 async def _post(client: httpx.AsyncClient, url: str, headers: dict, payload: dict) -> dict:
     for attempt in range(2):
         try:
@@ -28,7 +36,7 @@ async def _post(client: httpx.AsyncClient, url: str, headers: dict, payload: dic
                 return result
         except httpx.HTTPStatusError as error:
             if attempt or error.response.status_code not in RETRYABLE:
-                raise ValueError("Provider rejected request") from None
+                raise ProviderRequestError(error.response.status_code) from None
         except httpx.TransportError:
             if attempt:
                 raise ValueError("Provider connection failed") from None

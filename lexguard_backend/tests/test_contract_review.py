@@ -260,9 +260,24 @@ class AsyncTests(unittest.IsolatedAsyncioTestCase):
                 calls.append(request)
                 return httpx.Response(status, json={})
             async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-                with self.assertRaises(ValueError):
+                with self.assertRaises(providers.ProviderRequestError) as error:
                     await providers._post(client, "https://provider.example", {}, {})
             self.assertEqual(len(calls), attempts)
+            self.assertEqual(error.exception.status_code, status)
+
+    async def test_provider_failure_logs_status_without_body_or_credentials(self):
+        context = ReviewContext(reviewing_party="Supplier", jurisdiction="Not specified", contract_type="Services")
+        async def handler(request):
+            return httpx.Response(401, json={"error": "private-provider-response"})
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-credential", "OPENROUTER_API_KEY": ""}):
+            async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+                with self.assertLogs("lexguard.analysis", level="WARNING") as captured:
+                    with self.assertRaises(AppError):
+                        await build_super_analysis({"text": SOURCE, "pages": [], "warnings": []}, context, "safe-id", client, Settings())
+        message = " ".join(captured.output)
+        self.assertIn("http_status=401", message)
+        self.assertNotIn("private-test-credential", message)
+        self.assertNotIn("private-provider-response", message)
 
 
 class APITests(unittest.TestCase):
