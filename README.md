@@ -2,7 +2,36 @@
 
 LEXGUARD helps a reviewer understand contract terms, inspect source-linked risks, and prepare for negotiation. It combines a Next.js interface with a FastAPI document-analysis service.
 
-## What works
+## Project links
+
+| Resource | Link |
+| --- | --- |
+| Live application | [Open LEXGUARD](https://lexguard-frontend-seven.vercel.app/) |
+| Source code | [raghav-shell/Lexguard](https://github.com/raghav-shell/Lexguard) |
+| Demo video | [Watch the product demo](https://drive.google.com/file/d/1AtPFyL2P54Hh2dFmx7QJNom6dRRytfBU/view?usp=drive_link) |
+| Automated checks | [GitHub Actions](https://github.com/raghav-shell/Lexguard/actions) |
+
+## Problem statement
+
+Contracts can contain broad liability, restrictive obligations, ownership transfers, and unequal termination rights that are difficult for non-specialists to identify. Reading a long agreement without a structured review makes it easy to overlook terms that deserve a question or negotiation.
+
+LEXGUARD helps users locate those terms, understand potential consequences, and connect each finding to the wording in their document. It supports preparation for review and negotiation; it does not establish enforceability or replace a lawyer.
+
+## Target users
+
+- Freelancers and consultants reviewing service agreements, payment terms, and IP ownership.
+- Employees reviewing employment offers and contractual restrictions.
+- Founders and small-business reviewers preparing questions about supplier or subscription agreements.
+
+The current product is a per-document review tool. It does not offer accounts, saved contract history, or team workspaces.
+
+## Solution
+
+A user uploads a searchable PDF or DOCX and optionally supplies their role, jurisdiction, and contract type. The backend extracts text, reviews every accepted text section using a configured AI provider, validates the response, and checks quoted evidence against the source. The user receives searchable findings with exact source locations, estimated risks, potential impacts, and negotiation suggestions.
+
+This is more than an API response viewer: document validation, resource limits, extraction isolation, text batching, source verification, score aggregation, provider deadlines/fallback, generated schemas, and report exports form the application workflow around the model.
+
+## Key features
 
 - Searchable PDF and DOCX uploads with optional reviewing-party, jurisdiction, and contract-type context.
 - Five review domains: employment, privacy, financial exposure, intellectual property, and fairness.
@@ -11,6 +40,27 @@ LEXGUARD helps a reviewer understand contract terms, inspect source-linked risks
 - Strict generated client validation, protected backend access, bounded extraction processes, per-process quotas/concurrency controls, and redacted request diagnostics.
 
 The analysis is one structured model review per text section, using Gemini with an optional OpenRouter fallback. It is not five independent legal agents. Real uploads never fall back to sample findings.
+
+## Main workflows
+
+1. **Review a contract:** upload a PDF/DOCX, add review context, and obtain a source-linked report.
+2. **Inspect findings:** search or filter by domain/severity, expand explanations, and navigate to quoted contract text.
+3. **Prepare negotiation:** generate an editable email template from the report's clause-specific suggestions, then copy or download it.
+4. **Export the review:** download Markdown or JSON, or print/save a PDF containing all findings regardless of active screen filters.
+
+Sample mode is explicitly labeled and uses an included example agreement. It does not analyze an uploaded file. The negotiation email is a template that the user reviews and edits, rather than a separately generated legal redline.
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | Next.js App Router, React, TypeScript, Tailwind CSS, Framer Motion |
+| Backend | Python, FastAPI, Uvicorn, asynchronous HTTPX |
+| Document processing | pdfplumber for PDFs; ZIP/XML parsing with defusedxml for DOCX; isolated parser processes |
+| AI integration | Gemini REST API; configurable OpenRouter fallback with structured output |
+| Validation | Pydantic response models and generated Zod client validation |
+| Testing and quality | Python unittest, Vitest, Testing Library, ESLint, TypeScript, dependency advisory scans |
+| Hosting and automation | Vercel frontend, Render backend, GitHub Actions |
 
 ## Limits and interpretation
 
@@ -93,7 +143,9 @@ There is no report-history database. Uploads are processed for the current reque
 
 ## Deployment and next steps
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for required production secrets, single-worker constraints, and release checks. Local configuration changes do not update hosted deployments.
+The public application is available at [lexguard-frontend-seven.vercel.app](https://lexguard-frontend-seven.vercel.app/). Deployment requires matching server-only `ANALYSIS_API_KEY` values on the frontend/backend, `BACKEND_API_URL` on Vercel, and configured AI provider credentials on the backend. Environment changes take effect in a new deployment; opening the landing page alone does not verify the upload workflow.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for required production secrets, single-worker constraints, and release checks. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for recorded validation and its scope.
 
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) tracks this hardening work. [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) records the original baseline, not the current implementation. [docs/EVALUATION.md](docs/EVALUATION.md) describes model-quality checks.
 
