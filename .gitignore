@@ -5,7 +5,6 @@ Thumbs.db
 # Dependencies
 node_modules/
 jspm_packages/
-pnpm-lock.yaml
 
 # Build outputs
 .next/
@@ -39,3 +38,13 @@ pnpm-debug.log*
 *.sw?
 __pycache__/
 *.pyc
+
+# Python environments and test/compiler caches
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.tsbuildinfo
+coverage/
+.env.*
+!.env.example

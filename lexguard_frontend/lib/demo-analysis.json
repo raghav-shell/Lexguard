@@ -1,0 +1,97 @@
+{
+  "schema_version": "3.0",
+  "request_id": "sample-report",
+  "extracted_text": "EMPLOYMENT AGREEMENT\n\nThis Employment Agreement (\"Agreement\") is entered into by and between the Company and the Employee.\n\n1. NON-COMPETE\nEmployee agrees not to engage in any competitive business within a 500-mile radius for a period of 3 years following termination. This includes starting a competing business, working for a competitor, or consulting for any entity in the same industry.\n\n2. INTELLECTUAL PROPERTY\nCompany retains perpetual, exclusive rights to all intellectual property created by the Employee during the term of employment, regardless of whether company resources were utilized, including side projects or inventions made on the Employee's personal time.\n\n3. TERMINATION\nCompany may terminate this Agreement at any time, with or without cause, without severance pay. Employee must provide four (4) weeks written notice prior to resignation.",
+  "overall_risk_score": 90,
+  "fairness_score": 25,
+  "overall_verdict": "critical",
+  "summary": "This sample employment agreement contains broad non-compete and IP terms, along with unequal termination notice requirements. Review the source-linked findings for potential negotiation points.",
+  "top_concerns": [
+    "Unreasonable 3-year post-employment non-compete.",
+    "Perpetual assignment of intellectual property including side projects.",
+    "One-sided termination rights without severance."
+  ],
+  "risk_breakdown": {
+    "employment": 90,
+    "privacy": 40,
+    "financial": 70,
+    "ip": 95,
+    "fairness": 80
+  },
+  "clauses": [
+    {
+      "clause_type": "Employment",
+      "severity": "critical",
+      "risk_score": 9,
+      "original_clause": "Employee agrees not to engage in any competitive business within a 500-mile radius for a period of 3 years following termination.",
+      "plain_english": "You cannot work for any competitor within 500 miles for 3 years after you leave.",
+      "why_risky": "The duration and geographic scope are exceptionally broad and prevent you from earning a livelihood in your field.",
+      "real_world_impact": "If you quit or are fired, you may be forced to relocate to another state or entirely change your career path for 3 years to avoid being sued.",
+      "negotiation_tip": "Limit the non-compete to 6-12 months and restrict the geographic scope to 50 miles.",
+      "affected_party": "Employee",
+      "confidence_score": 95,
+      "clause_id": "mock-1",
+      "fairness_assessment": "Highly Asymmetrical",
+      "agent_source": "Employment Agent",
+      "source_start": 139,
+      "source_end": 268,
+      "source_page": null
+    },
+    {
+      "clause_type": "Intellectual Property",
+      "severity": "high",
+      "risk_score": 8,
+      "original_clause": "Company retains perpetual, exclusive rights to all intellectual property created by the Employee during the term of employment, regardless of whether company resources were utilized, including side projects or inventions made on the Employee's personal time.",
+      "plain_english": "The company owns everything you create while employed here, even side projects built at home.",
+      "why_risky": "It claims ownership over your personal creations outside of work hours.",
+      "real_world_impact": "If you build a successful side-hustle app on your weekends, the company can legally claim 100% ownership and revenues.",
+      "negotiation_tip": "Add an explicit carve-out protecting inventions made entirely on your own time without company equipment.",
+      "affected_party": "Creator",
+      "confidence_score": 98,
+      "clause_id": "mock-2",
+      "fairness_assessment": "Unfair Overreach",
+      "agent_source": "IP Agent",
+      "source_start": 417,
+      "source_end": 675,
+      "source_page": null
+    },
+    {
+      "clause_type": "Fairness",
+      "severity": "critical",
+      "risk_score": 9,
+      "original_clause": "Company may terminate this Agreement at any time, with or without cause, without severance pay. Employee must provide four (4) weeks written notice prior to resignation.",
+      "plain_english": "The company can fire you instantly for no reason with zero severance pay, but you are required to give them 4 weeks of advance notice if you want to leave.",
+      "why_risky": "Unilateral termination rights without severance, combined with an asymmetrical notice requirement.",
+      "real_world_impact": "You could be abruptly let go without any financial safety net, while you are locked into a strict notice period if you want to leave.",
+      "negotiation_tip": "Request a mutual notice period (e.g., 2-4 weeks) or at least 2 weeks of severance pay if terminated without cause.",
+      "affected_party": "Employee",
+      "confidence_score": 92,
+      "clause_id": "mock-3",
+      "fairness_assessment": "Unilateral Notice & No Severance",
+      "agent_source": "Fairness Agent",
+      "source_start": 692,
+      "source_end": 861,
+      "source_page": null
+    }
+  ],
+  "provider_used": "demo",
+  "analysis_duration": 0.0,
+  "fallback_triggered": false,
+  "is_demo": true,
+  "coverage": {
+    "total_characters": 861,
+    "analyzed_characters": 861,
+    "total_pages": 0,
+    "batches": 1,
+    "scope": "all_extracted_text"
+  },
+  "context": {
+    "reviewing_party": "Employee",
+    "jurisdiction": "Not specified",
+    "contract_type": "Employment agreement"
+  },
+  "warnings": [
+    "SAMPLE REPORT: illustrative findings for the included sample agreement. No uploaded document was analyzed.",
+    "AI-assisted review does not establish enforceability or replace qualified legal advice."
+  ]
+}

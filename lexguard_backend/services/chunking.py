@@ -1,28 +1,28 @@
-import re
-from typing import List
+from dataclasses import dataclass
 
-def chunk_legal_text(text: str, max_chunks: int = 10) -> List[str]:
-    """
-    Smart, semantics-based chunker that splits text via paragraph boundaries
-    and numbered lists, selects the top N highest density chunks, and returns
-    them preserved in their original document reading order.
-    """
-    if not text:
-        return []
 
-    # Split by double newlines or numbered patterns (e.g., "1. ", "1.1 ")
-    raw_chunks = re.split(r'\n\s*\n|\n(?=\d+\.\s)', text)
-    
-    # Track chunks with their original indices to preserve reading order
-    indexed_chunks = [(i, chunk.strip()) for i, chunk in enumerate(raw_chunks) if len(chunk.strip()) > 50]
-    if not indexed_chunks:
-        return []
+@dataclass(frozen=True)
+class TextBatch:
+    text: str
+    start: int
 
-    # Sort chunks by length descending (longest/most dense contain most legal risk)
-    indexed_chunks.sort(key=lambda x: len(x[1]), reverse=True)
-    top_chunks = indexed_chunks[:max_chunks]
-    
-    # Re-sort by original index to restore correct document sequence
-    top_chunks.sort(key=lambda x: x[0])
-    
-    return [chunk for _, chunk in top_chunks]
+
+def chunk_legal_text(text: str, batch_chars: int = 20000) -> list[TextBatch]:
+    """Partition all text without dropping short clauses or changing source offsets."""
+    if batch_chars < 100:
+        raise ValueError("Batch size too small")
+    batches = []
+    start = 0
+    while start < len(text):
+        end = min(start + batch_chars, len(text))
+        if end < len(text):
+            boundary = text.rfind("\n", start + batch_chars * 3 // 4, end)
+            if boundary < 0:
+                boundary = text.rfind(" ", start + batch_chars * 3 // 4, end)
+            if boundary >= 0:
+                end = boundary + 1
+        batches.append(TextBatch(text[start:end], start))
+        if end == len(text):
+            break
+        start = end - min(300, batch_chars // 10)
+    return batches

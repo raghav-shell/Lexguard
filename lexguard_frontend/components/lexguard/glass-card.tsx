@@ -3,7 +3,8 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
 import { cn } from "@/lib/utils"
 import type { ReactNode } from "react"
-import { useRef, useState, useEffect } from "react"
+import { useRef } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface GlassCardProps {
   children: ReactNode
@@ -43,19 +44,7 @@ export function GlassCard({
   tilt = false
 }: GlassCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [mounted, setMounted] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    const touchCheck = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    setIsMobile(window.innerWidth < 768 || touchCheck)
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768 || touchCheck)
-    }
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  const isMobile = useIsMobile()
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -83,7 +72,7 @@ export function GlassCard({
       transition={{ duration: 0.6, delay, ease: [0.23, 1, 0.32, 1] }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={tilt && !isMobile && mounted ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
+      style={tilt && !isMobile ? { rotateX, rotateY, transformPerspective: 1000 } : {}}
       className={cn(
         "relative rounded-3xl",
         "bg-white/60 backdrop-blur-xl",
@@ -139,19 +128,7 @@ export function GlassButton({
   disabled
 }: GlassButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const [mounted, setMounted] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    const touchCheck = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    setIsMobile(window.innerWidth < 768 || touchCheck)
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768 || touchCheck)
-    }
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  const isMobile = useIsMobile()
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -207,7 +184,7 @@ export function GlassButton({
     lg: "px-8 py-4 text-lg gap-3",
   }
 
-  if (isMobile && mounted) {
+  if (isMobile) {
     return (
       <button
         onClick={onClick}

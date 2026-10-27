@@ -1,280 +1,113 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { AlertTriangle, WifiOff, Clock, FileX, RefreshCw, Sparkles } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
+import { MotionConfig } from "framer-motion"
 import { AnimatedBackground } from "@/components/lexguard/animated-background"
 import { Navbar } from "@/components/lexguard/navbar"
 import { HeroSection } from "@/components/lexguard/hero-section"
 import { UploadZone } from "@/components/lexguard/upload-zone"
 import { AnalysisOverlay } from "@/components/lexguard/analysis-overlay"
-import { ResultsDashboard, type BackendAnalysisResponse } from "@/components/lexguard/results-dashboard"
 import { FeaturesSection } from "@/components/lexguard/features-section"
-import { API_BASE_URL } from "@/lib/config"
+import { API_BASE_URL, uploadError } from "@/lib/config"
+import { parseAnalysis, type Report } from "@/lib/analysis"
+import type { ReviewContext } from "@/lib/analysis-contract"
 
-type AppState = "landing" | "analyzing" | "results" | "error"
-type ErrorType = "offline" | "timeout" | "file" | "server" | null
+const ResultsDashboard = dynamic(() => import("@/components/lexguard/results-dashboard").then(module => module.ResultsDashboard))
+type Problem = { message: string; requestId?: string }
 
-// ============================================================
-// Glassmorphic Error State Component
-// ============================================================
-const errorConfig = {
-  offline: {
-    icon: WifiOff,
-    title: "Connection Lost",
-    message: "Unable to reach the LEXGUARD backend. Please ensure the server is running and try again.",
-    color: "rose",
-  },
-  timeout: {
-    icon: Clock,
-    title: "Analysis Timed Out",
-    message: "The AI took longer than expected. This is usually a temporary issue. Please try again.",
-    color: "amber",
-  },
-  file: {
-    icon: FileX,
-    title: "Invalid Document",
-    message: "Only PDF, DOC, and DOCX files under 10MB are supported. Please upload a valid contract.",
-    color: "violet",
-  },
-  server: {
-    icon: AlertTriangle,
-    title: "Server Error",
-    message: "Something went wrong during analysis. The LEXGUARD team has been notified. Please try again.",
-    color: "rose",
-  },
-}
-
-function ErrorState({ type, onRetry }: { type: ErrorType; onRetry: () => void }) {
-  if (!type) return null
-  const config = errorConfig[type]
-  const Icon = config.icon
-
-  const colorMap: Record<string, string> = {
-    rose: "rgba(251, 113, 133, 0.15)",
-    amber: "rgba(251, 191, 36, 0.15)",
-    violet: "rgba(167, 139, 250, 0.15)",
-  }
-
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center px-6"
-      >
-        <div
-          className="absolute inset-0 backdrop-blur-2xl"
-          style={{ background: "linear-gradient(135deg, rgba(250,249,255,0.97), rgba(253,242,248,0.97))" }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-          className="relative z-10 max-w-md w-full"
-        >
-          <div
-            className="rounded-3xl border border-white/60 p-10 text-center"
-            style={{
-              background: "rgba(255,255,255,0.65)",
-              backdropFilter: "blur(40px)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.8) inset",
-            }}
-          >
-            <motion.div
-              animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-6 relative"
-              style={{ background: colorMap[config.color] }}
-            >
-              <Icon className="w-9 h-9 text-slate-600" />
-            </motion.div>
-
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">{config.title}</h2>
-            <p className="text-slate-500 leading-relaxed mb-8">{config.message}</p>
-
-            <button
-              onClick={onRetry}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-white font-semibold transition-all hover:scale-105 active:scale-95"
-              style={{
-                background: "linear-gradient(135deg, #a78bfa, #ec4899)",
-                boxShadow: "0 8px 24px rgba(167,139,250,0.35)",
-              }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              Try Again
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  )
-}
-
-// ============================================================
-// Main Page
-// ============================================================
 export default function LexguardPage() {
-  const [appState, setAppState] = useState<AppState>("landing")
-  const [errorType, setErrorType] = useState<ErrorType>(null)
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<
-    (BackendAnalysisResponse & { fileName: string; analyzedAt: Date }) | null
-  >(null)
-  const [statusMessage, setStatusMessage] = useState("Initializing AI Core...")
-  const [isAnalysisComplete, setIsAnalysisComplete] = useState(false)
-  const uploadRef = useRef<HTMLDivElement>(null)
+  const [report, setReport] = useState<Report | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState<Problem | null>(null)
+  const request = useRef<AbortController | null>(null)
+  const mounted = useRef(true)
+  const upload = useRef<HTMLDivElement>(null)
+  const errorPanel = useRef<HTMLDivElement>(null)
 
-  const handleUploadClick = useCallback(() => {
-    uploadRef.current?.scrollIntoView({ behavior: "smooth" })
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false; request.current?.abort() }
+  }, [])
+  useEffect(() => { if (problem) errorPanel.current?.focus() }, [problem])
+
+  const cancel = useCallback(() => {
+    request.current?.abort()
+    request.current = null
+    setBusy(false)
+  }, [])
+  const showUpload = useCallback(() => upload.current?.scrollIntoView({ behavior: "instant" }), [])
+  const showDemo = useCallback(async () => {
+    setProblem(null)
+    const sample = await import("@/lib/demo-analysis.json")
+    setReport({ ...parseAnalysis(sample.default), fileName: "Sample employment agreement", analyzedAt: new Date().toISOString() })
+    window.scrollTo(0, 0)
   }, [])
 
-  const pollStatus = async () => {
+  const analyze = useCallback(async (file: File, context: ReviewContext) => {
+    const invalid = uploadError(file)
+    if (invalid) { setProblem({ message: invalid }); return }
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
+    let timedOut = false
+    const timer = setTimeout(() => { timedOut = true; controller.abort() }, 210000)
+    setProblem(null)
+    setBusy(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/analyze-status`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.stage && !data.stage.includes("Complete")) {
-          setStatusMessage(data.stage)
-        }
-      }
-    } catch {
-      // Silently ignore polling errors — they don't affect the main analysis
-    }
-  }
-
-  const handleFileUpload = useCallback(async (file: File) => {
-    setUploadedFile(file)
-    setIsAnalysisComplete(false)
-    setAppState("analyzing")
-    setStatusMessage("Uploading document for analysis...")
-
-    const pollInterval = setInterval(pollStatus, 1500)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 100_000) // 100s client timeout
-
-      let response: Response
-      try {
-        response = await fetch(`${API_BASE_URL}/analyze-contract`, {
-          method: "POST",
-          body: formData,
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId)
-        clearInterval(pollInterval)
-        if (fetchError.name === "AbortError") {
-          setErrorType("timeout")
-        } else {
-          setErrorType("offline")
-        }
-        setAppState("error")
-        return
-      }
-
-      // Handle HTTP error responses
-      if (response.status === 413) {
-        clearInterval(pollInterval)
-        setErrorType("file")
-        setAppState("error")
-        return
-      }
-      if (response.status === 400) {
-        clearInterval(pollInterval)
-        setErrorType("file")
-        setAppState("error")
-        return
-      }
+      const body = new FormData()
+      body.append("file", file)
+      for (const [key, value] of Object.entries(context)) body.append(key, value)
+      const response = await fetch(API_BASE_URL + "/analyze-contract", { method: "POST", body, signal: controller.signal })
+      const value: unknown = await response.json()
       if (!response.ok) {
-        clearInterval(pollInterval)
-        setErrorType("server")
-        setAppState("error")
-        return
+        const error = value as { error?: { message?: unknown; request_id?: unknown } }
+        throw Object.assign(new Error(typeof error.error?.message === "string" ? error.error.message : "The analysis could not be completed. Please retry."),
+          { requestId: typeof error.error?.request_id === "string" ? error.error.request_id : undefined })
       }
-
-      const data: BackendAnalysisResponse = await response.json()
-
-      clearInterval(pollInterval)
-      setStatusMessage("Analysis Complete! Preparing your dashboard...")
-      setAnalysisResult({
-        ...data,
-        fileName: file.name,
-        analyzedAt: new Date(),
-      })
-      setIsAnalysisComplete(true)
+      let result
+      try { result = parseAnalysis(value) }
+      catch { throw new Error("The server returned an invalid or unverified report. Please retry or contact the operator.") }
+      if (mounted.current && request.current === controller && !controller.signal.aborted) {
+        setReport({ ...result, fileName: file.name, analyzedAt: new Date().toISOString() })
+        window.scrollTo(0, 0)
+      }
     } catch (error) {
-      console.error("Analysis failed:", error)
-      clearInterval(pollInterval)
-      setErrorType("server")
-      setAppState("error")
+      if (!mounted.current || request.current !== controller) return
+      if (timedOut) setProblem({ message: "The review took too long. Try a smaller document or retry later." })
+      else if (!controller.signal.aborted) {
+        const message = error instanceof Error ? error.message : "Unable to complete the review."
+        const requestId = error instanceof Error && "requestId" in error ? String(error.requestId || "") : undefined
+        setProblem({ message: message.includes("Failed to fetch") ? "Cannot reach the review service. Check your connection and retry." : message.includes("validation") ? "The server returned an invalid report. Please retry or contact the operator." : message, requestId })
+      }
+    } finally {
+      clearTimeout(timer)
+      if (mounted.current && request.current === controller) { setBusy(false); request.current = null }
     }
-  }, [])
-
-  const handleBack = useCallback(() => {
-    setAppState("landing")
-    setUploadedFile(null)
-    setAnalysisResult(null)
-    setErrorType(null)
-    setIsAnalysisComplete(false)
-  }, [])
-
-  const handleRetry = useCallback(() => {
-    setErrorType(null)
-    setAppState("landing")
-    setUploadedFile(null)
-    setIsAnalysisComplete(false)
-  }, [])
-
-  const handleAnalysisOverlayComplete = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "instant" })
-    setAppState("results")
-    setIsAnalysisComplete(false)
   }, [])
 
   return (
-    <main className="relative min-h-screen">
-      <AnimatedBackground />
-
-      {(appState === "landing" || appState === "error") && (
-        <>
-          <Navbar />
-          <HeroSection onUploadClick={handleUploadClick} />
-          <div ref={uploadRef}>
-            <UploadZone onFileUpload={handleFileUpload} isAnalyzing={false} />
-          </div>
-          <FeaturesSection />
-
-          {/* Powered by footer */}
-          <div className="text-center py-8 text-xs text-slate-400 flex items-center justify-center gap-2">
-            <Sparkles className="w-3 h-3 text-violet-400" />
-            <span>Powered by</span>
-            <span className="font-semibold text-slate-500">Gemini 2.5 Flash</span>
-            <span>&</span>
-            <span className="font-semibold text-slate-500">Claude 3.5 Sonnet</span>
-            <span>· Built with LEXGUARD AI</span>
-          </div>
-        </>
-      )}
-
-      {appState === "results" && analysisResult && (
-        <ResultsDashboard result={analysisResult} onBack={handleBack} />
-      )}
-
-      <AnalysisOverlay
-        isVisible={appState === "analyzing"}
-        statusMessage={statusMessage}
-        isComplete={isAnalysisComplete}
-        onComplete={handleAnalysisOverlayComplete}
-      />
-
-      {appState === "error" && <ErrorState type={errorType} onRetry={handleRetry} />}
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main className="relative min-h-screen">
+        <div className="no-print" aria-hidden="true"><AnimatedBackground /></div>
+        <div inert={busy}>
+          {report ? <ResultsDashboard result={report} onBack={() => { setReport(null); setProblem(null); window.scrollTo(0, 0) }} /> : <>
+            <Navbar onUploadClick={showUpload} onDemoClick={showDemo} />
+            <HeroSection onUploadClick={showUpload} onDemoClick={showDemo} />
+            <div ref={upload}>
+              {problem && <div ref={errorPanel} tabIndex={-1} role="alert" className="relative max-w-3xl mx-6 md:mx-auto p-6 mt-8 rounded-xl border border-rose-200 bg-rose-50 text-rose-950">
+                <h2 className="font-semibold">Review could not be completed</h2>
+                <p className="mt-2">{problem.message}</p>
+                {problem.requestId && <p className="text-xs mt-2">Reference: {problem.requestId}</p>}
+              </div>}
+              <UploadZone onFileUpload={analyze} isAnalyzing={busy} />
+            </div>
+            <FeaturesSection />
+            <footer className="relative text-center p-8 text-sm text-slate-600">LEXGUARD · AI-assisted contract review · Verify important terms before signing.</footer>
+          </>}
+        </div>
+        {busy && <AnalysisOverlay onCancel={cancel} />}
+      </main>
+    </MotionConfig>
   )
 }

@@ -7,6 +7,7 @@ import { useRef, useEffect } from "react"
 
 interface HeroSectionProps {
   onUploadClick: () => void
+  onDemoClick: () => void
 }
 
 const letterVariants = {
@@ -18,7 +19,7 @@ const letterVariants = {
     transition: {
       delay: 0.4 + i * 0.05,
       duration: 0.8,
-      ease: [0.23, 1, 0.32, 1] as any,
+      ease: [0.23, 1, 0.32, 1] as [number, number, number, number],
     },
   }),
 }
@@ -29,7 +30,7 @@ const floatingPanels = [
   { icon: Zap, label: "Risk Score", value: "72/100", color: "amber", delay: 1.2 },
 ]
 
-export function HeroSection({ onUploadClick }: HeroSectionProps) {
+export function HeroSection({ onUploadClick, onDemoClick }: HeroSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   
   const mouseX = useMotionValue(0)
@@ -224,9 +225,9 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
             </GlassButton>
           </motion.div>
           
-          <GlassButton variant="secondary" size="lg">
+          <GlassButton variant="secondary" size="lg" onClick={onDemoClick}>
             <Play className="w-4 h-4" />
-            Watch Demo
+            View Sample Report
           </GlassButton>
         </motion.div>
 

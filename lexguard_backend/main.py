@@ -1,98 +1,99 @@
+import asyncio
+import logging
 import os
 import time
-import asyncio
+from contextlib import asynccontextmanager
+import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
+from starlette.exceptions import HTTPException
+from config import Settings, configured
+from errors import AppError
+from routes.analyze import router
+from security import AdmissionControl, RequestGuard
 
-# Load env variables first
-load_dotenv(override=True)
+load_dotenv(override=False)
+logger = logging.getLogger("lexguard")
 
-# Import routers
-from routes.analyze import router as analyze_router
 
-app = FastAPI(
-    title="LEXGUARD API",
-    description="AI-powered contract risk intelligence system",
-    version="2.0.0"
-)
+def create_app(settings: Settings | None = None):
+    settings = settings or Settings.from_env()
+    if settings.production and (len(settings.api_key) < 32 or settings.api_key.startswith("replace-")):
+        raise ValueError("Production requires a random ANALYSIS_API_KEY of at least 32 characters")
 
-# ============================================================
-# CORS — Dynamic allowed origins + regex for Vercel deployments
-# ============================================================
-frontend_urls = os.getenv("FRONTEND_URL", "")
-allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-if frontend_urls:
-    allowed_origins.extend(
-        [url.strip() for url in frontend_urls.split(",")]
-    )
+    @asynccontextmanager
+    async def lifespan(app):
+        async with httpx.AsyncClient(timeout=httpx.Timeout(35, connect=5), limits=httpx.Limits(max_connections=12)) as client:
+            app.state.http = client
+            yield
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app = FastAPI(title="LEXGUARD API", version="3.0.0", lifespan=lifespan)
+    app.state.settings = settings
+    app.state.parser_lock = asyncio.Semaphore(1)
+    app.state.admission = AdmissionControl(settings)
+    origins = [url.strip().rstrip("/") for url in os.getenv("FRONTEND_URL", "").split(",") if url.strip()]
+    if not settings.production:
+        origins += ["http://localhost:3000", "http://127.0.0.1:3000"]
+    app.add_middleware(RequestGuard, settings=settings, admission=app.state.admission)
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False,
+                       allow_methods=["POST", "GET"], allow_headers=["Content-Type"],
+                       expose_headers=["X-Request-ID", "Retry-After"])
 
-# ============================================================
-# Global exception handler — never leak raw errors to frontend
-# ============================================================
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    print(f"[UNHANDLED ERROR] {request.url.path}: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"error": "An internal error occurred. Please try again.", "detail": str(exc)[:200]}
-    )
+    def error_response(request, status, code, message):
+        return JSONResponse({"error": {"code": code, "message": message,
+            "request_id": getattr(request.state, "request_id", "unavailable")}},
+            status_code=status, headers={"Cache-Control": "no-store"})
 
-# ============================================================
-# Mount routes
-# ============================================================
-app.include_router(analyze_router)
+    @app.exception_handler(AppError)
+    async def app_error(request: Request, error: AppError):
+        return error_response(request, error.status, error.code, error.message)
 
-# ============================================================
-# Health endpoints
-# ============================================================
-@app.get("/")
-async def root():
-    return {"status": "LEXGUARD backend running", "version": "2.0.0"}
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, error: RequestValidationError):
+        return error_response(request, 422, "invalid_request", "Provide one PDF or DOCX and valid review context within the displayed limits.")
 
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "service": "LEXGUARD Backend",
-        "version": "2.0.0"
-    }
+    @app.exception_handler(HTTPException)
+    async def http_error(request: Request, error: HTTPException):
+        return error_response(request, error.status_code, "invalid_request", "This request could not be processed.")
 
-# ============================================================
-# Startup logs
-# ============================================================
-@app.on_event("startup")
-async def startup_event():
-    gemini_key = os.getenv("GEMINI_API_KEY", "")
-    openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
-    frontend_url = os.getenv("FRONTEND_URL", "localhost:3000")
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, error: Exception):
+        logger.error("request_failed request_id=%s type=%s", getattr(request.state, "request_id", "unknown"), type(error).__name__)
+        return error_response(request, 500, "internal_error", "An internal error occurred. Please retry or contact the operator with the request ID.")
 
-    print("\n" + "="*50)
-    print("  LEXGUARD AI — PRODUCTION BACKEND v2.0")
-    print("="*50)
-    gemini_status = "✓ ACTIVE" if (gemini_key and gemini_key != "your_gemini_api_key_here") else "✗ NOT CONFIGURED"
-    openrouter_status = "✓ ACTIVE" if (openrouter_key and openrouter_key != "your_openrouter_api_key_here") else "✗ NOT CONFIGURED"
-    print(f"  [PRIMARY]    Gemini 2.5 Flash      {gemini_status}")
-    print(f"  [SECONDARY]  OpenRouter Claude     {openrouter_status}")
-    print(f"  [SAFETY NET] Cinematic Mock        ✓ ALWAYS ACTIVE")
-    print(f"  [CORS]       Frontend URL          {frontend_url}")
-    print("="*50 + "\n")
+    app.include_router(router)
+
+    @app.get("/")
+    async def root():
+        return {"service": "LEXGUARD", "version": "3.0.0"}
+
+    @app.get("/health")
+    async def health():
+        return {"status": "alive", "version": "3.0.0"}
+
+    @app.get("/ready")
+    async def ready():
+        available = any(configured(key) for key in ("GEMINI_API_KEY", "OPENROUTER_API_KEY"))
+        return JSONResponse({"status": "configured" if available else "not_configured",
+                             "provider_connectivity": "not_probed"}, status_code=200 if available else 503)
+
+    @app.middleware("http")
+    async def request_metrics(request, call_next):
+        started = time.monotonic()
+        response = await call_next(request)
+        logger.info("request_complete request_id=%s method=%s path=%s status=%s duration_ms=%d",
+                    getattr(request.state, "request_id", "unknown"), request.method,
+                    request.url.path, response.status_code, (time.monotonic() - started) * 1000)
+        return response
+
+    return app
+
+
+app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    uvicorn.run("main:app", host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8000")), reload=True)

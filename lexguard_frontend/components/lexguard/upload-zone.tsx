@@ -1,361 +1,86 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
-import { Upload, FileText, X, Sparkles, Cloud, Zap, CheckCircle } from "lucide-react"
-import { useState, useCallback, useRef } from "react"
-import { GlassButton } from "./glass-card"
-import { cn } from "@/lib/utils"
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react"
+import { uploadError } from "@/lib/config"
+import type { ReviewContext } from "@/lib/analysis-contract"
 
-interface UploadZoneProps {
-  onFileUpload: (file: File) => void
+interface Props {
+  onFileUpload: (file: File, context: ReviewContext) => void
   isAnalyzing: boolean
 }
 
-export function UploadZone({ onFileUpload, isAnalyzing }: UploadZoneProps) {
-  const [isDragOver, setIsDragOver] = useState(false)
+export function UploadZone({ onFileUpload, isAnalyzing }: Props) {
   const [file, setFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState("")
+  const [dragging, setDragging] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const [party, setParty] = useState("")
+  const [jurisdiction, setJurisdiction] = useState("")
+  const [contractType, setContractType] = useState("General agreement")
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    
-    const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile && (
-      droppedFile.type === "application/pdf" || 
-      droppedFile.type === "application/msword" || 
-      droppedFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
-      droppedFile.name.toLowerCase().endsWith(".pdf") || 
-      droppedFile.name.toLowerCase().endsWith(".docx") || 
-      droppedFile.name.toLowerCase().endsWith(".doc")
-    )) {
-      setFile(droppedFile)
-    }
-  }, [])
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
-      setFile(selectedFile)
-    }
-  }, [])
-
-  const handleAnalyze = () => {
-    if (file) {
-      onFileUpload(file)
-    }
+  function choose(value?: File) {
+    if (!value) return
+    const problem = uploadError(value)
+    setError(problem || "")
+    setFile(problem ? null : value)
   }
-
-  const removeFile = () => {
-    setFile(null)
+  function select(event: ChangeEvent<HTMLInputElement>) { choose(event.target.files?.[0]) }
+  function drop(event: DragEvent) {
+    event.preventDefault()
+    setDragging(false)
+    if (event.dataTransfer.files.length !== 1) {
+      setError("Upload one document at a time.")
+      return
+    }
+    choose(event.dataTransfer.files[0])
   }
 
   return (
-    <section id="upload" className="relative px-6 py-24">
+    <section id="upload" className="relative px-6 py-20 scroll-mt-24">
       <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1] }}
-          className="text-center mb-14"
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100 mb-8 relative"
-          >
-            {/* Pulsing glow */}
-            <motion.div
-              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute inset-0 rounded-3xl"
-              style={{
-                background: 'radial-gradient(circle, rgba(168, 139, 250, 0.3) 0%, transparent 70%)',
-                filter: 'blur(15px)',
-              }}
-            />
-            <motion.div
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Cloud className="w-10 h-10 text-violet-500 relative z-10" />
-            </motion.div>
-          </motion.div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-800 mb-5">
-            Upload Your Contract
-          </h2>
-          <p className="text-slate-500 text-lg max-w-md mx-auto">
-            Drop your contract file and let our AI analyze it for risks and recommendations
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
-        >
-          {/* Upload zone */}
-          <motion.div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            animate={isDragOver ? { scale: 1.02 } : { scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className={cn(
-              "relative rounded-3xl p-6 sm:p-14 transition-all duration-500",
-              "bg-white/60 backdrop-blur-xl",
-              "border-2 border-dashed",
-              isDragOver 
-                ? "border-violet-400 shadow-[0_0_80px_rgba(168,139,250,0.3)]" 
-                : "border-slate-200/80 hover:border-violet-300/80",
-              isAnalyzing && "pointer-events-none"
-            )}
-          >
-            {/* Animated gradient border on hover/drag */}
-            <AnimatePresence>
-              {isDragOver && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 rounded-3xl pointer-events-none"
-                  style={{
-                    background: "radial-gradient(ellipse at center, rgba(168, 139, 250, 0.15) 0%, transparent 70%)"
-                  }}
-                />
-              )}
-            </AnimatePresence>
-
-            {/* Corner accents */}
-            <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-violet-300/50 rounded-tl-xl" />
-            <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-violet-300/50 rounded-tr-xl" />
-            <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-violet-300/50 rounded-bl-xl" />
-            <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-violet-300/50 rounded-br-xl" />
-
-            {/* Rising particles when analyzing */}
-            {isAnalyzing && (
-              <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                {[...Array(20)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{
-                      y: [150, -350],
-                      opacity: [0, 1, 0],
-                      scale: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 2.5 + Math.random(),
-                      repeat: Infinity,
-                      delay: i * 0.15,
-                      ease: "easeOut"
-                    }}
-                    className="absolute bottom-0 rounded-full"
-                    style={{ 
-                      left: `${5 + i * 4.5}%`,
-                      width: 4 + (i % 4) * 2,
-                      height: 4 + (i % 4) * 2,
-                      background: i % 3 === 0 
-                        ? 'rgba(168, 139, 250, 0.6)' 
-                        : i % 3 === 1 
-                          ? 'rgba(244, 114, 182, 0.5)'
-                          : 'rgba(34, 211, 238, 0.5)',
-                      boxShadow: `0 0 8px ${
-                        i % 3 === 0 ? 'rgba(168, 139, 250, 0.5)' :
-                        i % 3 === 1 ? 'rgba(244, 114, 182, 0.4)' :
-                        'rgba(34, 211, 238, 0.4)'
-                      }`,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-
-            <div className="relative z-10 text-center">
-              <AnimatePresence mode="wait">
-                {!file ? (
-                  <motion.div
-                    key="upload"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <motion.div
-                      animate={isDragOver 
-                        ? { scale: 1.15, y: -15, rotate: 5 } 
-                        : { scale: 1, y: 0, rotate: 0 }
-                      }
-                      transition={{ type: "spring", stiffness: 300 }}
-                      className={cn(
-                        "w-28 h-28 mx-auto mb-10 rounded-3xl flex items-center justify-center relative",
-                        "bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100",
-                        "shadow-[0_8px_40px_rgba(168,139,250,0.25)]",
-                        isDragOver && "shadow-[0_16px_60px_rgba(168,139,250,0.4)]"
-                      )}
-                    >
-                      {/* Animated rings around icon */}
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute inset-0 rounded-3xl border-2 border-violet-300/30"
-                      />
-                      <Upload className={cn(
-                        "w-12 h-12 transition-colors duration-300 relative z-10",
-                        isDragOver ? "text-violet-600" : "text-violet-400"
-                      )} />
-                    </motion.div>
-
-                    <h3 className="text-2xl md:text-3xl font-semibold text-slate-700 mb-4">
-                      {isDragOver ? "Drop it here!" : "Drag and drop your contract"}
-                    </h3>
-                    <p className="text-slate-400 mb-4">
-                      or click to browse files
-                    </p>
-                    
-                    {/* Supported formats badges */}
-                    <div className="flex items-center justify-center gap-2 mb-10">
-                      {["PDF", "DOC", "DOCX"].map((format) => (
-                        <span 
-                          key={format}
-                          className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500"
-                        >
-                          {format}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="relative inline-block rounded-2xl group transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]">
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        onChange={handleFileSelect}
-                        className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
-                        ref={fileInputRef}
-                      />
-                      {/* Premium gradient Browse Files button */}
-                      <div
-                        className={cn(
-                          "relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-semibold text-base overflow-hidden",
-                          "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white",
-                          "shadow-[0_4px_24px_rgba(168,139,250,0.45)]",
-                          "transition-shadow duration-300",
-                          "group-hover:shadow-[0_8px_40px_rgba(168,139,250,0.6)]",
-                        )}
-                      >
-                        {/* Shimmer sweep */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none"
-                          animate={{ x: ["-100%", "100%"] }}
-                          transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2.5 }}
-                        />
-                        {/* Glossy top reflection */}
-                        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-2xl pointer-events-none" />
-                        <FileText className="w-4 h-4 relative z-10" />
-                        <span className="relative z-10">Browse Files</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="file"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                    className="space-y-6"
-                  >
-                    {/* File preview with animations */}
-                    <motion.div 
-                      className="inline-flex items-center gap-3 sm:gap-5 px-4 py-3 sm:px-7 sm:py-5 rounded-2xl bg-white/80 border border-white/60 shadow-[0_8px_30px_rgba(168,139,250,0.15)] relative overflow-hidden max-w-full"
-                      initial={{ y: 15 }}
-                      animate={{ y: 0 }}
-                    >
-                      {/* Success indicator */}
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring" }}
-                        className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3"
-                      >
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
-                      </motion.div>
-
-                      <motion.div 
-                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center flex-shrink-0"
-                        animate={{ rotate: [0, 3, -3, 0] }}
-                        transition={{ duration: 4, repeat: Infinity }}
-                      >
-                        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-violet-500" />
-                      </motion.div>
-                      <div className="text-left min-w-0 flex-1">
-                        <div className="text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-[220px]">
-                          {file.name}
-                        </div>
-                        <div className="text-xs sm:text-sm text-slate-400">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </div>
-                      </div>
-                      {!isAnalyzing && (
-                        <motion.button
-                          whileHover={{ scale: 1.1, rotate: 90 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={removeFile}
-                          className="p-2 rounded-xl hover:bg-slate-100 transition-colors ml-2"
-                        >
-                          <X className="w-5 h-5 text-slate-400" />
-                        </motion.button>
-                      )}
-                    </motion.div>
-
-                    {/* Analyze button with glow */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <GlassButton 
-                        size="lg" 
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing}
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            >
-                              <Zap className="w-5 h-5" />
-                            </motion.div>
-                            Analyzing Contract...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-5 h-5" />
-                            Start AI Analysis
-                          </>
-                        )}
-                      </GlassButton>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </motion.div>
+        <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Review a contract</h2>
+        <p className="mt-3 text-slate-600">Upload a searchable PDF or DOCX, up to 4 MiB, 80 PDF pages, and 80,000 extracted characters. Scanned documents need OCR first.</p>
+        <form className="mt-8 rounded-3xl bg-white/80 border border-violet-100 p-6 md:p-8 space-y-6"
+          onSubmit={event => {
+            event.preventDefault()
+            if (file && !uploadError(file)) onFileUpload(file, {
+              reviewing_party: party.trim() || "Not specified",
+              jurisdiction: jurisdiction.trim() || "Not specified",
+              contract_type: contractType,
+            })
+          }}>
+          <div onDragOver={event => { event.preventDefault(); setDragging(true) }}
+            onDragLeave={() => setDragging(false)} onDrop={drop}
+            className={"border-2 border-dashed rounded-2xl p-7 " + (dragging ? "border-violet-600 bg-violet-50" : "border-slate-300")}>
+            <label htmlFor="contract-file" className="block font-semibold text-slate-800 mb-3">Contract document</label>
+            <input ref={input} id="contract-file" type="file" accept=".pdf,.docx" disabled={isAnalyzing} onChange={select}
+              aria-describedby="file-help upload-error" className="w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-100 file:px-4 file:py-2 file:font-semibold file:text-violet-900" />
+            <p id="file-help" className="text-xs text-slate-500 mt-3">Choose a file above or drop it here. Legacy .doc files must be converted.</p>
+            {file && <div className="mt-4 flex items-center justify-between gap-4 text-sm text-slate-700">
+              <span className="break-all">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MiB</span>
+              <button type="button" onClick={() => { setFile(null); setError(""); if (input.current) input.current.value = "" }} className="text-violet-800 underline">Remove</button>
+            </div>}
+            <p id="upload-error" role="alert" className="text-sm text-rose-800 mt-2">{error}</p>
+          </div>
+          <fieldset className="grid sm:grid-cols-2 gap-4">
+            <legend className="font-semibold text-slate-800 mb-3">Review context <span className="font-normal text-slate-500">(optional)</span></legend>
+            <label className="text-sm text-slate-700">Your role or reviewing party
+              <input value={party} onChange={event => setParty(event.target.value)} maxLength={120} placeholder="For example, employee or supplier"
+                className="mt-2 w-full border border-slate-300 rounded-lg p-3 bg-white" />
+            </label>
+            <label className="text-sm text-slate-700">Governing jurisdiction
+              <input value={jurisdiction} onChange={event => setJurisdiction(event.target.value)} maxLength={120} placeholder="For example, India — Karnataka"
+                className="mt-2 w-full border border-slate-300 rounded-lg p-3 bg-white" />
+            </label>
+            <label className="text-sm text-slate-700 sm:col-span-2">Contract type
+              <select value={contractType} onChange={event => setContractType(event.target.value)} className="mt-2 w-full border border-slate-300 rounded-lg p-3 bg-white">
+                {["General agreement", "Employment agreement", "Freelance / services agreement", "Non-disclosure agreement", "Lease", "Software / subscription agreement"].map(type => <option key={type}>{type}</option>)}
+              </select>
+            </label>
+          </fieldset>
+          <p className="text-xs leading-6 text-slate-600">Extracted contract text is sent to the configured AI provider and may be sent to a fallback provider if needed. This app does not save report history. Provider data handling follows their terms. Only upload documents you are authorized to process. AI-assisted review can miss issues and is not legal advice.</p>
+          <button disabled={!file || isAnalyzing} type="submit" className="w-full rounded-xl bg-violet-700 text-white px-6 py-4 font-semibold disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-600">Start contract review</button>
+        </form>
       </div>
     </section>
   )

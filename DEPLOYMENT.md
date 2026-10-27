@@ -1,162 +1,72 @@
-# 🛡️ LEXGUARD — Complete Production Deployment Guide
+# Deployment and operating guide
 
-This guide details the fresh, foolproof steps to deploy the **LEXGUARD AI Contract Intelligence System** with the backend hosted on **Render** and the frontend hosted on **Vercel**. 
+This revision changes the API contract and browser connection path. Deploy the backend and frontend together after configuring the secrets below. Existing hosted deployments have not been modified by this implementation.
 
----
+## Backend: Render
 
-## 🏗️ 1. Architecture Overview & AI Pipeline Flow
+Use `lexguard_backend/render.yaml` as the Blueprint path, or configure the equivalent settings manually:
 
-LEXGUARD is a stateless web application that couples a high-fidelity dynamic Next.js frontend with a fast FastAPI backend.
+- Root directory: `lexguard_backend`.
+- Build: `pip install -r requirements.txt`.
+- Start: `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 20`.
+- Python: 3.13, recorded in `.python-version`.
+- Health check: `/health` (liveness). `/ready` separately reports whether at least one provider key is configured; it does not call a provider.
 
-```
-       [ Client Browser ]
-               │
-               ▼ (HTTPS Requests)
-   ┌───────────────────────┐
-   │    Vercel Frontend    │
-   │  (Next.js 16 + tw v4) │
-   └───────────────────────┘
-               │
-               ▼ (API Calls / CORS Checked)
-   ┌───────────────────────┐
-   │    Render Backend     │
-   │   (FastAPI + Python)  │
-   └───────────────────────┘
-               │
-               ├─► [1] Google Gemini 2.5 Flash (Primary)
-               ├─► [2] OpenRouter Claude 3.5 Sonnet (Secondary Fallback)
-               └─► [3] Cinematic Hardcoded JSON (Tertiary Safety Net)
-```
+Required configuration:
 
-### 🧠 Dynamic AI Fallback Pipeline
-The backend is designed for high availability using a cascade of three intelligence providers:
-1. **Google Gemini 2.5 Flash**: Primary provider for high-speed structured JSON parsing.
-2. **OpenRouter (Claude 3.5 Sonnet)**: Automatically triggered if Gemini fails or hits a rate limit.
-3. **Cinematic Fallback Mock**: Automatically triggered if both APIs are down or if the client request times out (90-second safety threshold). This guarantees the user interface never breaks.
+| Variable | Purpose |
+| --- | --- |
+| `ENVIRONMENT=production` | Fail startup unless a service key of at least 32 characters is configured |
+| `ANALYSIS_API_KEY` | Random secret shared only with the Next.js server |
+| `GEMINI_API_KEY` and/or `OPENROUTER_API_KEY` | Actual provider credentials |
+| `GEMINI_MODEL` | Optional; default `gemini-2.5-flash` |
+| `OPENROUTER_MODEL` | Optional; default `anthropic/claude-sonnet-4.6`, verified in the public model catalog as supporting structured outputs; validate live quality before release |
+| `FRONTEND_URL` | Exact comma-separated trusted origins if direct browser access is needed; no wildcard Vercel trust |
+| `MAX_CONCURRENT_ANALYSES` | Default 2; allowed 1–4 |
+| `ANALYSES_PER_HOUR` | Default 10 per client identity |
+| `GLOBAL_ANALYSES_PER_HOUR` | Default 60 per backend process |
 
----
+Generate a random key locally with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`, then set it privately in both services. Do not commit it. On an existing Render service, add new secrets manually: [Render does not apply new `sync: false` values during later Blueprint syncs](https://render.com/docs/blueprint-spec#prompting-for-secret-values). [Saved environment changes require the applicable deployment to take effect](https://render.com/docs/configure-environment-variables).
 
-## 📦 2. GitHub Repository Setup
+The local Blueprint was structurally checked against Render's public schema. No Blueprint sync, service creation, plan change, or deployment was performed.
 
-Before deploying, make sure your project is committed to a GitHub repository:
+## Frontend: Vercel
 
-1. Create a **private or public** repository on GitHub (e.g., `github.com/your-username/lexguard`).
-2. Initialize and push your local codebase to the repository:
-   ```bash
-   git init
-   git add .
-   git commit -m "feat: harden CORS, standard API env config & health check"
-   git branch -M main
-   git remote add origin https://github.com/your-username/lexguard.git
-   git push -u origin main
-   ```
+- Root directory: `lexguard_frontend`.
+- Node.js: 24 LTS.
+- Install: `npm ci`; build: `npm run build`.
+- Set **server-only** `BACKEND_API_URL=https://your-backend.onrender.com`.
+- Set **server-only** `ANALYSIS_API_KEY` to the same secret as the backend.
+- Remove reliance on the former `NEXT_PUBLIC_API_URL`; browser requests now use `/api/analyze-contract`.
+- The route has a 210-second function duration and request cancellation enabled in `vercel.json`.
 
----
+The browser and proxy limit uploads to 4 MiB to stay below [the Vercel Functions 4.5 MB body limit](https://vercel.com/docs/functions/limitations#request-body-size), including multipart overhead. The backend's independent limit is 10 MiB. For larger browser uploads, design a separate authenticated direct-upload flow rather than increasing the Vercel proxy limit.
 
-## 🐍 3. Render Backend Deployment
+CORS is not authentication. The backend requires its service key; the public Next.js route remains a public entry point protected by backend admission limits. Vercel supplies the proxy's forwarding header; the proxy overwrites `X-Client-IP` rather than trusting a browser-provided value. For self-hosting behind another proxy, explicitly configure a trusted client-IP source or retain the shared per-proxy client quota.
 
-Render hosts the FastAPI Python server.
+## Capacity and abuse protection
 
-### Step-by-Step Setup:
-1. Log into your account on **[Render.com](https://render.com/)**.
-2. Click **New +** $\rightarrow$ **Web Service**.
-3. Connect your GitHub account and select your `lexguard` repository.
-4. Configure the Web Service with the following exact settings:
-   * **Name**: `lexguard-backend`
-   * **Region**: Select the one closest to you (e.g., `Oregon (US West)`)
-   * **Branch**: `main`
-   * **Root Directory**: `lexguard_backend` ⚠️ *Crucial: Point to the backend folder!*
-   * **Runtime**: `Python`
-   * **Plan**: `Free`
-   * **Build Command**: `pip install -r requirements.txt`
-   * **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+Run exactly **one backend worker on one instance** with this implementation. Quotas and active counters live in that process, contain hashed client identities only, and reset on restart. They are bounded admission controls, not durable billing quotas. A global request cap still applies when clients rotate IPs.
 
-### Configure Environment Variables on Render:
-Navigate to the **Environment** tab of your Render service and add these keys:
+Before scaling horizontally or increasing provider budgets, add a distributed quota/concurrency service and enforce abuse protection at the hosting ingress. Configure provider-side spend limits and platform request-rate rules for the public proxy. Do not treat the private backend key as end-user authentication. Accounts and paid-user entitlements are not implemented.
 
-| Environment Variable | Recommended Value | Description |
-| :--- | :--- | :--- |
-| `GEMINI_API_KEY` | `your_actual_gemini_key` | Your Google AI Studio API Key |
-| `OPENROUTER_API_KEY` | `your_openrouter_key` | Secondary fallback Claude API Key |
-| `OPENROUTER_MODEL` | `anthropic/claude-3.5-sonnet` | Model utilized by the secondary provider |
-| `FRONTEND_URL` | `https://your-vercel-app.vercel.app` | Comma-separated Vercel URLs (production & dev) |
-| `DEBUG` | `False` | Turn off developer debug logs |
+The existing Render plan is preserved. Validate parser memory and concurrency under representative PDFs before changing capacity. Extraction is serialized per backend process, with a 256 MiB parser address-space cap on Linux and byte/page/time bounds on all supported platforms. Backend provider calls use a shared async HTTP client; timed-out and disconnected analysis tasks are cancelled. Parser processes are terminated on deadline/cancellation. There are no detached model jobs.
 
-> [!NOTE]
-> **Free-Tier Cold Starts**: Render's free tier spins down your server after 15 minutes of inactivity. When a user first lands on your frontend and uploads a document, the first request may take ~50 seconds to wake the server. Subsequent requests will be near-instant.
+## Privacy and diagnostics
 
----
+Keep request bodies and provider response bodies out of platform tracing/log capture. Error responses contain stable public messages and a request ID. Application logs include IDs, path, status, duration, and provider attempt failures without exception text. Reports are served with `Cache-Control: no-store`. No report database or analytics is enabled.
 
-## ⚛️ 4. Vercel Frontend Deployment
+Do not promise provider-side zero retention unless the actual provider account/configuration supports it. Provide users with the applicable provider terms and authorization requirements.
 
-Vercel hosts the responsive, glassmorphic Next.js frontend.
+## Release verification
 
-### Step-by-Step Setup:
-1. Log into your account on **[Vercel.com](https://vercel.com/)**.
-2. Click **Add New** $\rightarrow$ **Project**.
-3. Select your `lexguard` repository from the GitHub imports list.
-4. Configure the project details:
-   * **Project Name**: `lexguard-frontend`
-   * **Framework Preset**: `Next.js`
-   * **Root Directory**: `lexguard_frontend` ⚠️ *Crucial: Point to the frontend folder!*
-5. Expand the **Build and Development Settings** and ensure they are set to default (`npm run build` / `npm run start`).
+1. Run backend tests, generated-contract check, frontend tests, lint, type check, and production build.
+2. Verify `/health` responds and `/ready` reports configured. Confirm direct unauthenticated backend uploads return 401.
+3. Through the frontend, upload a synthetic PDF and DOCX. Confirm real source text, context, coverage, and source-linked findings.
+4. Try a broken PDF, legacy DOC, empty file, over-limit file, and missing-provider configuration. Each must show a clear error without sample results.
+5. Check sample mode is visibly labeled, cancel an active review, navigate source links, filter findings, edit the email template, and download reports.
+6. Print with a filter active and details collapsed. The print report must still include every finding.
+7. Check keyboard focus and narrow/mobile layouts, and compare live-provider findings against the evaluation fixtures.
+8. Verify the serving versions and production environment after deploy; passing local tests does not establish production health.
 
-### Configure Environment Variables on Vercel:
-Expand the **Environment Variables** section and add the following variable:
-
-| Key | Value | Description |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | `https://lexguard-backend-w5k1.onrender.com` | Your live Render backend URL (no trailing slash) |
-
-> [!IMPORTANT]
-> **Consistent Variable Naming**: Make sure to use **`NEXT_PUBLIC_API_URL`**! The frontend has been hardened to look for this variable to know where the Render backend resides. If omitted, the frontend defaults to `http://127.0.0.1:8000` (which fails in production).
-
-6. Click **Deploy**. Vercel will build the production bundle of Next.js and launch it within 2 minutes.
-
----
-
-## 🔒 5. CORS Hardening Explanation
-
-CORS (Cross-Origin Resource Sharing) is a browser security protocol that blocks requests from domains that aren't explicitly whitelisted. 
-
-To prevent CORS issues when Vercel generates dynamic preview links or when you want to use multiple frontend test domains, the LEXGUARD backend has been hardened to support:
-* **Regex Whitelisting**: Automatically accepts requests from *any* subdomain ending in `.vercel.app` (e.g., Vercel previews and production deployments).
-* **Comma-Separated Whitelisting**: The `FRONTEND_URL` variable on Render accepts a list of comma-separated domains (e.g. `https://customdomain.com,http://localhost:3000`).
-* **Local Development**: Always accepts local ports `localhost:3000` and `127.0.0.1:3000`.
-
----
-
-## 🧪 6. Post-Deployment Verification & Diagnostics
-
-Follow this verification checklist after both deployments succeed:
-
-### 1. Backend Health Check
-Open your browser and navigate to:
-```
-https://your-render-backend-url.onrender.com/health
-```
-You should instantly receive a clean JSON response:
-```json
-{
-  "status": "healthy",
-  "service": "LEXGUARD Backend",
-  "version": "2.0.0"
-}
-```
-
-### 2. Frontend Communication Test
-1. Load your Vercel website `https://your-vercel-app.vercel.app`.
-2. Drag and drop any short sample contract PDF under 10MB.
-3. Observe the dynamic glassmorphic scanner overlay.
-4. If it successfully finishes in the **Results Dashboard**, your pipeline is fully operational!
-
----
-
-## 🛠️ 7. Troubleshooting Checklist
-
-| Symptom | Cause | Solution |
-| :--- | :--- | :--- |
-| **"Unable to reach the LEXGUARD backend" (Offline Screen)** | Backend is booting up, or frontend URL variable is wrong. | Wait 60 seconds (free-tier wake up). Check Vercel Environment Variables $\rightarrow$ ensure `NEXT_PUBLIC_API_URL` matches your exact Render URL (starting with `https://`, no trailing `/`). |
-| **CORS errors in Browser Console** | Frontend origin is blocked by Backend CORS settings. | Ensure the frontend domain ends with `.vercel.app` or is explicitly added to `FRONTEND_URL` in the Render dashboard (separated by commas). |
-| **Upload results always use the Mock Fallback** | AI APIs are missing or key string is `your_gemini_api_key_here`. | Ensure `GEMINI_API_KEY` is set correctly in the Render Dashboard and does not contain spaces or quotes. Check Render logs to verify. |
-| **Render Service Deployment Fails** | Root directory or plan configurations are incorrect. | Check that "Root Directory" is set to `lexguard_backend` and the start command has the double hyphen (`--host 0.0.0.0 --port $PORT`). |
+If a release fails, restore the matching prior frontend/backend pair. Retain the new production key requirement and review migration compatibility before rolling back.

@@ -1,646 +1,152 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
-import { FileText, AlertTriangle, Shield, Clock, ArrowLeft, Download, Share2, Sparkles, Brain, Eye, Zap, Scale, Activity, Copy, Check } from "lucide-react"
-import { GlassCard, GlassButton } from "./glass-card"
-import { ClauseCard, type ClauseData } from "./clause-card"
-import { VerdictPanel, type VerdictLevel } from "./verdict-panel"
-import { ContractViewer } from "./contract-viewer"
-import { cn } from "@/lib/utils"
-import { useEffect, useState, useMemo } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { ClauseCard } from "./clause-card"
+import { ContractViewer } from "./contract-viewer"
+import { downloadReport, negotiationDraft, reportMarkdown, type Report } from "@/lib/analysis"
 
-export interface BackendAnalysisResponse {
-  extracted_text: string
-  overall_risk_score: number
-  fairness_score: number
-  overall_verdict: string
-  summary: string
-  top_concerns: string[]
-  risk_breakdown: {
-    employment: number
-    privacy: number
-    financial: number
-    ip: number
-    fairness: number
+export type { AnalysisResponse as BackendAnalysisResponse } from "@/lib/analysis-contract"
+
+export function ResultsDashboard({ result, onBack }: { result: Report; onBack: () => void }) {
+  const [query, setQuery] = useState("")
+  const [severity, setSeverity] = useState("all")
+  const [category, setCategory] = useState("all")
+  const [active, setActive] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [draft, setDraft] = useState<string | null>(null)
+  const [tab, setTab] = useState<"findings" | "document">("findings")
+  const findings = useMemo(() => {
+    const search = query.trim().toLowerCase()
+    return result.clauses.filter(c =>
+      (severity === "all" || c.severity === severity) && (category === "all" || c.clause_type === category) &&
+      (!search || [c.original_clause, c.plain_english, c.why_risky, c.negotiation_tip].some(text => text.toLowerCase().includes(search))),
+    )
+  }, [result.clauses, query, severity, category])
+
+  const selectFinding = useCallback((id: string) => {
+    setQuery(""); setCategory("all"); setSeverity("all")
+    setExpanded(previous => new Set(previous).add(id))
+    setActive(id)
+    setTab("findings")
+    requestAnimationFrame(() => { const finding = document.getElementById("finding-" + id); finding?.scrollIntoView({ block: "center", behavior: "instant" }); finding?.focus({ preventScroll: true }) })
+  }, [])
+  function toggle(id: string) {
+    setExpanded(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
-  clauses: ClauseData[]
-}
-
-interface ResultsDashboardProps {
-  result: BackendAnalysisResponse & { fileName: string, analyzedAt: Date }
-  onBack: () => void
-}
-
-// Helper function to find the best fuzzy substring match in the document text for a given query clause
-function findBestFuzzyMatch(documentText: string, searchClause: string): string | null {
-  if (!documentText || !searchClause) return null
-
-  // Normalize a string to a list of clean, lowercase words
-  const getWords = (str: string): string[] => {
-    return str
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // replace punctuation with spaces
-      .split(/\s+/)
-      .filter(w => w.length > 0)
+  async function copyDraft() {
+    try { await navigator.clipboard.writeText(draft || ""); toast.success("Email template copied") }
+    catch { toast.error("Copy was unavailable. Select the email text and copy it manually.") }
   }
-
-  const searchWords = getWords(searchClause)
-  if (searchWords.length === 0) return null
-
-  // Split documentText into candidate segments while tracking their exact character positions
-  const segments: { text: string; startIdx: number; endIdx: number }[] = []
-  
-  let currentIdx = 0
-  const lines = documentText.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const lineStart = currentIdx
-    const lineEnd = currentIdx + line.length
-    
-    // Split the line into sentences
-    const sentences = line.split(/(?<=[.!?])\s+/)
-    let sentenceStartInLine = 0
-    
-    for (let j = 0; j < sentences.length; j++) {
-      const sentence = sentences[j]
-      const trimmed = sentence.trim()
-      if (trimmed) {
-        const sentenceIdx = line.indexOf(trimmed, sentenceStartInLine)
-        if (sentenceIdx !== -1) {
-          segments.push({
-            text: trimmed,
-            startIdx: lineStart + sentenceIdx,
-            endIdx: lineStart + sentenceIdx + trimmed.length
-          })
-          sentenceStartInLine = sentenceIdx + trimmed.length
-        }
-      }
-    }
-    
-    currentIdx = lineEnd + 1 // +1 for the newline character
-  }
-
-  if (segments.length === 0) return null
-
-  let bestMatch: string | null = null
-  let bestScore = 0
-  const maxWindowSize = 4 // check windows of 1 to 4 segments to cover multi-line or long clauses
-
-  for (let w = 1; w <= maxWindowSize; w++) {
-    for (let i = 0; i <= segments.length - w; i++) {
-      const windowSegments = segments.slice(i, i + w)
-      
-      // Get the exact raw text in documentText between start of first segment and end of last segment
-      const startIdx = windowSegments[0].startIdx
-      const endIdx = windowSegments[windowSegments.length - 1].endIdx
-      const rawTextMatch = documentText.substring(startIdx, endIdx)
-
-      const candidateWords = getWords(rawTextMatch)
-      if (candidateWords.length === 0) continue
-
-      // Calculate word overlap
-      const candidateWordSet = new Set(candidateWords)
-      let overlapCount = 0
-      searchWords.forEach(word => {
-        if (candidateWordSet.has(word)) {
-          overlapCount++
-        }
-      })
-
-      const recall = overlapCount / searchWords.length
-      const precision = overlapCount / candidateWordSet.size
-      
-      // F1-like score with high weight on recall (since LLM quotes might be subsets/paraphrases)
-      const score = recall * 0.85 + precision * 0.15
-
-      // Only consider if recall is high enough (at least 45% of search words are matched)
-      if (recall >= 0.45 && score > bestScore) {
-        bestScore = score
-        bestMatch = rawTextMatch
-      }
-    }
-  }
-
-  // Return the best match if it has a high score, otherwise fallback
-  return bestScore >= 0.45 ? bestMatch : null
-}
-
-export function ResultsDashboard({ result, onBack }: ResultsDashboardProps) {
-  const [activeClauseId, setActiveClauseId] = useState<string | null>(null)
-  const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
-  const [proposalText, setProposalText] = useState<string | null>(null)
-  const [isCopied, setIsCopied] = useState(false)
-  const [mobileTab, setMobileTab] = useState<"insights" | "document">("insights")
-
-  // Align AI-extracted clause quotes with exact document text using fuzzy matching
-  const processedClauses = useMemo(() => {
-    return result.clauses.map(clause => {
-      const matchedText = findBestFuzzyMatch(result.extracted_text, clause.original_clause)
-      if (matchedText) {
-        return {
-          ...clause,
-          original_clause: matchedText
-        }
-      }
-      return clause
-    })
-  }, [result.clauses, result.extracted_text])
-
-  // Map verdict from backend string to VerdictLevel
-  const getVerdictLevel = (backendVerdict: string): VerdictLevel => {
-      const v = backendVerdict.toLowerCase()
-      if (v.includes("critical") || v.includes("extremely")) return "critical"
-      if (v.includes("high")) return "high-risk"
-      if (v.includes("caution") || v.includes("medium")) return "caution"
-      return "safe"
-  }
-
-  const verdictLevel = getVerdictLevel(result.overall_verdict)
-
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Lexguard Analysis Report',
-          text: `Check out the AI analysis for ${result.fileName}`,
-          url: window.location.href,
-        })
-      } else {
-        await navigator.clipboard.writeText(window.location.href)
-        toast.success("Report link copied to clipboard!")
-      }
-    } catch (e) {
-      console.warn("Share failed", e)
-    }
-  }
-
-  const handleGenerateProposal = () => {
-    setIsGeneratingProposal(true)
-    
-    // Simulate AI generation time for MVP
-    setTimeout(() => {
-      const topConcernsText = result.top_concerns.map(c => `- ${c}`).join('\n')
-      const draft = `Subject: Proposed Revisions to ${result.fileName}
-
-Hi [Name],
-
-I've reviewed the current draft of the agreement. While most of it looks good, there are a few areas of concern we need to address before moving forward:
-
-${topConcernsText}
-
-Could we schedule a brief call to discuss modifying these terms to be more mutually beneficial? I've attached my specific redlines for your review.
-
-Looking forward to finalizing this.
-
-Best regards,
-[Your Name]`
-      
-      setProposalText(draft)
-      setIsGeneratingProposal(false)
-      toast.success("Counter-proposal generated successfully!")
-    }, 2000)
-  }
-
-  const handleCopyProposal = () => {
-    if (proposalText) {
-      navigator.clipboard.writeText(proposalText)
-      setIsCopied(true)
-      toast.success("Draft copied to clipboard!")
-      setTimeout(() => setIsCopied(false), 2000)
-    }
-  }
+  function source(id: string) { setActive(id); setTab("document"); requestAnimationFrame(() => document.querySelector<HTMLElement>('#document-panel [tabindex="0"]')?.focus({ preventScroll: true })) }
+  const button = "rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-semibold text-violet-900 hover:bg-violet-50 focus-visible:outline-2 focus-visible:outline-violet-600"
+  const stem = "lexguard-" + result.fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80)
 
   return (
-    <section className="relative px-4 py-8 md:px-8 md:py-12 min-h-screen">
-      {/* Ambient background elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-20 right-20 w-[400px] h-[400px] rounded-full hidden md:block"
-          style={{
-            background: 'radial-gradient(circle, rgba(168, 139, 250, 0.3) 0%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.1, 0.2, 0.1],
-          }}
-          transition={{ duration: 10, repeat: Infinity, delay: 2 }}
-          className="absolute bottom-20 left-20 w-[500px] h-[500px] rounded-full hidden md:block"
-          style={{
-            background: 'radial-gradient(circle, rgba(244, 114, 182, 0.25) 0%, transparent 70%)',
-            filter: 'blur(80px)',
-          }}
-        />
+    <div className="relative max-w-[1500px] mx-auto p-4 md:p-8">
+      <div className="no-print">
+        <header className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div className="min-w-0">
+            <button type="button" onClick={onBack} className={button}>Review another contract</button>
+            <h1 className="mt-5 text-2xl md:text-3xl font-bold text-slate-900 break-all">{result.fileName}</h1>
+            <p className="text-sm text-slate-600 mt-2">{new Date(result.analyzedAt).toLocaleString()} · {result.provider_used === "demo" ? "Illustrative sample" : "Provider: " + result.provider_used}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={button} onClick={() => downloadReport(reportMarkdown(result), stem + ".md", "text/markdown;charset=utf-8")}>Download report</button>
+            <button type="button" className={button} onClick={() => downloadReport(JSON.stringify(result, null, 2), stem + ".json", "application/json")}>Export JSON</button>
+            <button type="button" className={button} onClick={() => window.print()}>Print / Save PDF</button>
+          </div>
+        </header>
+
+        {result.is_demo && <div role="status" className="p-4 rounded-xl bg-amber-100 border border-amber-300 text-amber-950 mb-5 font-semibold">Sample report · These findings belong to the included sample agreement. No uploaded document was analyzed.</div>}
+        <section aria-label="Review summary" className="bg-white/85 border border-violet-100 rounded-2xl p-6 mb-6">
+          <div className="grid sm:grid-cols-3 gap-5 mb-5">
+            <div><h2 className="text-sm text-slate-600">Overall risk estimate</h2><p className="text-3xl font-bold text-slate-900">{result.overall_risk_score}<span className="text-base text-slate-500"> / 100</span></p><p className="text-sm capitalize">{result.overall_verdict.replace("-", " ")}</p></div>
+            <div><h2 className="text-sm text-slate-600">Fairness estimate</h2><p className="text-3xl font-bold text-slate-900">{result.fairness_score}<span className="text-base text-slate-500"> / 100</span></p><p className="text-sm text-slate-600">Higher indicates more balance</p></div>
+            <div><h2 className="text-sm text-slate-600">Review coverage</h2><p className="font-semibold text-slate-900">All extracted text submitted</p><p className="text-sm text-slate-600">{result.coverage.analyzed_characters.toLocaleString()} characters · {result.coverage.batches} section(s){result.coverage.total_pages > 0 ? " · " + result.coverage.total_pages + " pages" : ""}</p></div>
+          </div>
+          <p className="text-slate-700">{result.summary}</p>
+          <dl className="grid sm:grid-cols-3 gap-3 mt-5 text-sm">
+            <div><dt className="text-slate-500">Reviewing party</dt><dd>{result.context.reviewing_party}</dd></div>
+            <div><dt className="text-slate-500">Jurisdiction</dt><dd>{result.context.jurisdiction}</dd></div>
+            <div><dt className="text-slate-500">Contract type</dt><dd>{result.context.contract_type}</dd></div>
+          </dl>
+          <div className="grid sm:grid-cols-5 gap-3 mt-5">
+            {Object.entries(result.risk_breakdown).map(([name, score]) => <div key={name} className="bg-violet-50 rounded-xl p-3">
+              <p className="text-xs capitalize text-slate-600">{name === "ip" ? "Intellectual property" : name} risk</p>
+              <p className="font-semibold text-slate-900">{score}/100</p>
+            </div>)}
+          </div>
+        </section>
+
+        <details className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6" open>
+          <summary className="font-semibold text-amber-950 cursor-pointer">Review scope and limitations</summary>
+          <ul className="mt-3 space-y-2 list-disc pl-5 text-sm text-amber-950">{result.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>
+          <p className="text-xs mt-3">Reference: {result.request_id}{result.fallback_triggered ? " · A fallback AI provider was used." : ""}</p>
+        </details>
+
+        <div role="group" aria-label="Review panels" className="lg:hidden flex gap-2 mb-5">
+          <button aria-pressed={tab === "findings"} aria-controls="findings-panel" id="findings-tab" onClick={() => setTab("findings")} className={button}>Findings</button>
+          <button aria-pressed={tab === "document"} aria-controls="document-panel" id="document-tab" onClick={() => setTab("document")} className={button}>Source document</button>
+        </div>
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <div id="document-panel" className={(tab === "document" ? "" : "hidden ") + "lg:block lg:sticky lg:top-5"}>
+            <ContractViewer extractedText={result.extracted_text} clauses={result.clauses} activeClauseId={active} onSelect={selectFinding} />
+          </div>
+          <section id="findings-panel" aria-label="Contract findings" className={(tab === "findings" ? "" : "hidden ") + "lg:block space-y-4"}>
+            <h2 className="text-xl font-bold text-slate-900">Findings</h2>
+            <div className="bg-white/80 border border-violet-100 rounded-xl p-4 grid sm:grid-cols-2 gap-3">
+              <label className="text-sm sm:col-span-2">Search findings
+                <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search clauses, risks, or suggestions"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" />
+              </label>
+              <label className="text-sm">Severity<select value={severity} onChange={event => setSeverity(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 bg-white">
+                <option value="all">All severities</option>{["critical", "high", "medium", "low"].map(value => <option key={value}>{value}</option>)}
+              </select></label>
+              <label className="text-sm">Domain<select value={category} onChange={event => setCategory(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 bg-white">
+                <option value="all">All domains</option>{["Employment", "Privacy", "Financial", "Intellectual Property", "Fairness"].map(value => <option key={value}>{value}</option>)}
+              </select></label>
+              <p role="status" className="text-sm text-slate-600 sm:col-span-2">{findings.length} of {result.clauses.length} findings shown</p>
+            </div>
+            {findings.map(clause => <ClauseCard key={clause.clause_id} clause={clause} expanded={expanded.has(clause.clause_id)}
+              onToggle={() => toggle(clause.clause_id)} onSource={() => source(clause.clause_id)} />)}
+            {!findings.length && <p className="bg-white p-5 rounded-xl text-slate-700">{result.clauses.length ? "No findings match these filters." : "No source-grounded findings were returned. This does not establish that the agreement is safe to sign."}</p>}
+          </section>
+        </div>
+
+        <section className="mt-8 rounded-2xl p-6 bg-white/80 border border-violet-100">
+          <h2 className="text-xl font-bold text-slate-900">Prepare for negotiation</h2>
+          <p className="text-sm text-slate-600 mt-2 mb-4">Create an editable email template using this report’s negotiation suggestions. Review and adapt it before sending.</p>
+          {draft === null ? <button type="button" className={button} onClick={() => setDraft(negotiationDraft(result))}>Prepare email template</button> : <>
+            <label className="block text-sm font-semibold mb-2" htmlFor="negotiation-email">Your email draft</label>
+            <textarea id="negotiation-email" value={draft} onChange={event => setDraft(event.target.value)} rows={14} className="w-full border border-slate-300 rounded-xl p-4 text-sm leading-7" />
+            <div className="flex gap-2 mt-3">
+              <button type="button" className={button} onClick={copyDraft}>Copy draft</button>
+              <button type="button" className={button} onClick={() => downloadReport(draft, stem + "-negotiation.txt", "text/plain;charset=utf-8")}>Download draft</button>
+            </div>
+          </>}
+        </section>
       </div>
 
-      <div className="max-w-[1600px] mx-auto relative z-10">
-        {/* PRINT ONLY: Cover Page */}
-        <div className="hidden print:flex flex-col items-center justify-center min-h-screen page-break-after text-center py-20 px-8">
-          <div className="w-24 h-24 bg-slate-900 rounded-3xl flex items-center justify-center mb-8 mx-auto border-4 border-slate-900 shadow-2xl">
-             <Shield className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-6xl font-black text-slate-900 tracking-tight mb-4">LEXGUARD</h1>
-          <h2 className="text-2xl font-medium text-slate-500 mb-16 uppercase tracking-widest">AI Contract Intelligence Report</h2>
-          
-          <div className="w-full max-w-3xl border-t-2 border-b-2 border-slate-100 py-12 mb-16">
-             <h3 className="text-3xl font-bold text-slate-800 mb-4">{result.fileName}</h3>
-             <p className="text-slate-500 flex items-center justify-center gap-2 font-medium">
-                <Clock className="w-4 h-4" />
-                Generated on {result.analyzedAt.toLocaleDateString()} at {result.analyzedAt.toLocaleTimeString()}
-             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-8 w-full max-w-3xl">
-            <div className="border border-slate-200 p-8 rounded-2xl bg-slate-50">
-               <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Overall Verdict</div>
-               <div className="text-4xl font-bold capitalize text-slate-900">{verdictLevel.replace('-', ' ')}</div>
-            </div>
-            <div className="border border-slate-200 p-8 rounded-2xl bg-slate-50">
-               <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Fairness Score</div>
-               <div className="text-4xl font-bold text-slate-900">{result.fairness_score} <span className="text-2xl text-slate-400">/ 100</span></div>
-            </div>
-          </div>
-        </div>
-
-        {/* PRINT ONLY: Executive Summary */}
-        <div className="hidden print:block page-break-after py-12 px-8 max-w-4xl mx-auto">
-           <h2 className="text-4xl font-bold text-slate-900 mb-10 border-b-2 border-slate-100 pb-4">Executive Summary</h2>
-           
-           <div className="mb-12">
-              <h3 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                 <Brain className="w-6 h-6 text-violet-600" />
-                 AI Recommendation
-              </h3>
-              <p className="text-lg text-slate-700 leading-relaxed bg-violet-50/50 p-6 rounded-2xl border border-violet-100">
-                 <strong className="text-slate-900 block mb-2">
-                   {verdictLevel === 'critical' ? 'Do not sign. Extremely high risk terms detected that heavily favor the issuer.' :
-                    verdictLevel === 'high-risk' ? 'Negotiation strongly advised. Several concerning clauses require your attention before proceeding.' :
-                    verdictLevel === 'caution' ? 'Proceed with caution. The agreement is mostly standard but contains a few asymmetric terms.' :
-                    'Safe to proceed. The agreement appears balanced and standard.'}
-                 </strong>
-                 {result.summary}
-              </p>
-           </div>
-
-           <div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                 <AlertTriangle className="w-6 h-6 text-rose-500" />
-                 Top Legal Concerns
-              </h3>
-              <ul className="space-y-4">
-                 {result.top_concerns.map((concern, i) => (
-                    <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-rose-50/30 border border-rose-100 text-slate-700 text-lg">
-                       <div className="mt-2 w-2 h-2 rounded-full bg-rose-500 flex-shrink-0" />
-                       <span className="leading-relaxed">{concern}</span>
-                    </li>
-                 ))}
-              </ul>
-           </div>
-        </div>
-
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 print:hidden"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
-            <GlassButton variant="ghost" onClick={onBack} className="self-start flex-shrink-0">
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </GlassButton>
-            
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <motion.div 
-                className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 border border-violet-200/50 flex items-center justify-center shadow-lg relative overflow-hidden flex-shrink-0"
-                whileHover={{ rotate: [0, -5, 5, 0], scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{ x: ["-100%", "100%"] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                />
-                <FileText className="w-5.5 h-5.5 sm:w-7 sm:h-7 text-violet-500 relative z-10" />
-              </motion.div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl font-semibold text-slate-800 truncate max-w-[200px] xs:max-w-[260px] sm:max-w-[500px]">
-                  {result.fileName}
-                </h1>
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Analyzed {result.analyzedAt.toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
- 
-          <div className="flex flex-wrap gap-2.5 sm:gap-3 flex-shrink-0">
-            <GlassButton variant="secondary" size="sm" onClick={handleShare}>
-              <Share2 className="w-4 h-4" />
-              Share Report
-            </GlassButton>
-            <GlassButton variant="secondary" size="sm" onClick={() => window.print()}>
-              <Download className="w-4 h-4" />
-              Export PDF
-            </GlassButton>
-          </div>
-        </motion.div>
-
-        {/* Mobile Tab Switcher */}
-        <div className="flex lg:hidden bg-white/50 border border-white/40 backdrop-blur-md p-1.5 rounded-2xl mb-8 shadow-[0_4px_20px_rgba(168,139,250,0.05)]">
-          <button
-            onClick={() => setMobileTab("insights")}
-            className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2",
-              mobileTab === "insights"
-                ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-md shadow-violet-500/20"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Brain className="w-4 h-4" />
-            AI Insights
-          </button>
-          <button
-            onClick={() => setMobileTab("document")}
-            className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2",
-              mobileTab === "document"
-                ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-md shadow-violet-500/20"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <FileText className="w-4 h-4" />
-            Contract Viewer
-          </button>
-        </div>
-
-        {/* Main Grid Layout: Left (Contract), Right (Insights) */}
-        <div className="grid lg:grid-cols-12 gap-8">
-          
-          {/* LEFT: Contract Viewer */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className={cn("lg:col-span-5 h-[calc(100vh-140px)] lg:sticky lg:top-6", mobileTab === "document" ? "block" : "hidden lg:block")}
-          >
-             <ContractViewer 
-                extractedText={result.extracted_text} 
-                clauses={processedClauses} 
-                activeClauseId={activeClauseId}
-             />
-          </motion.div>
-
-          {/* RIGHT: AI Insights Dashboard */}
-          <motion.div
-             initial={{ opacity: 0, x: 30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: 0.3, duration: 0.6 }}
-             className={cn("lg:col-span-7 space-y-6", mobileTab === "insights" ? "block" : "hidden lg:block")}
-          >
-             {/* Scores Row */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <VerdictPanel
-                  verdict={verdictLevel}
-                  score={result.overall_risk_score}
-                  summary={result.summary}
-                />
-
-                <GlassCard className="p-6 flex flex-col items-center justify-center text-center relative overflow-hidden h-full" hover={false}>
-                    {/* Background glow for fairness */}
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className="absolute inset-0 bg-[radial-gradient(circle,rgba(52,211,153,0.15)_0%,transparent_70%)]"
-                    />
-                    
-                    <Scale className="w-8 h-8 text-emerald-500 mb-3 relative z-10" />
-                    <div className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 relative z-10">Contract Fairness Score</div>
-                    <div className="flex items-baseline gap-2 relative z-10">
-                        <span className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">
-                           <AnimatedNumber value={result.fairness_score} delay={0.4} />
-                        </span>
-                        <span className="text-xl text-slate-400 font-medium">/ 100</span>
-                    </div>
-                    
-                    <div className="mt-4 w-full max-w-[200px] h-2 bg-slate-100 rounded-full overflow-hidden relative z-10">
-                        <motion.div 
-                          className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${result.fairness_score}%` }}
-                          transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
-                        />
-                    </div>
-                    
-                    <p className="mt-4 text-xs text-slate-500 relative z-10">
-                        Scores above 70 indicate a reasonably balanced agreement. Lower scores indicate severe asymmetry favoring the issuer.
-                    </p>
-                </GlassCard>
-             </div>
-
-             {/* Risk Breakdown & Top Concerns Row */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Risk Breakdown Bars */}
-                 <GlassCard className="p-6" hover={false}>
-                     <div className="flex items-center gap-2 mb-6">
-                         <Activity className="w-5 h-5 text-violet-500" />
-                         <h3 className="font-semibold text-slate-800">Risk Breakdown</h3>
-                     </div>
-                     <div className="space-y-4">
-                        <RiskBar label="Employment" score={result.risk_breakdown.employment} color="violet" delay={0.5} />
-                        <RiskBar label="Privacy" score={result.risk_breakdown.privacy} color="cyan" delay={0.6} />
-                        <RiskBar label="Financial" score={result.risk_breakdown.financial} color="rose" delay={0.7} />
-                        <RiskBar label="Intellectual Property" score={result.risk_breakdown.ip} color="amber" delay={0.8} />
-                     </div>
-                 </GlassCard>
-
-                 {/* Top Concerns */}
-                 <GlassCard className="p-6" hover={false}>
-                     <div className="flex items-center gap-2 mb-6">
-                         <AlertTriangle className="w-5 h-5 text-rose-500" />
-                         <h3 className="font-semibold text-slate-800">Top Concerns</h3>
-                     </div>
-                     <ul className="space-y-3">
-                         {result.top_concerns.map((concern, i) => (
-                             <motion.li 
-                               key={i}
-                               initial={{ opacity: 0, x: -10 }}
-                               animate={{ opacity: 1, x: 0 }}
-                               transition={{ delay: 0.8 + (i * 0.1) }}
-                               className="flex items-start gap-3 p-3 rounded-xl bg-rose-50/50 border border-rose-100/50 text-sm text-slate-700"
-                             >
-                                 <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-rose-400 flex-shrink-0" />
-                                 {concern}
-                             </motion.li>
-                         ))}
-                     </ul>
-                 </GlassCard>
-             </div>
-
-             {/* Clause Cards Header */}
-             <div className="flex items-center justify-between pt-4">
-                <div className="flex items-center gap-3">
-                    <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 4, repeat: Infinity }}>
-                        <Sparkles className="w-5 h-5 text-violet-500" />
-                    </motion.div>
-                    <h2 className="text-xl font-semibold text-slate-800">Flagged Clauses</h2>
-                </div>
-                <span className="text-sm text-slate-400 bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50 shadow-sm">
-                    {processedClauses.length} issues found
-                </span>
-             </div>
-
-             {/* Clauses List */}
-             <div className="space-y-5">
-                 {processedClauses.map((clause, index) => (
-                    <div 
-                      key={clause.clause_id} 
-                      onMouseEnter={() => setActiveClauseId(clause.clause_id)}
-                      onMouseLeave={() => setActiveClauseId(null)}
-                      className="print:break-inside-avoid"
-                    >
-                      <ClauseCard
-                        clause={clause}
-                        index={index}
-                      />
-                    </div>
-                 ))}
-             </div>
-             
-             {/* Bottom CTA & Proposal Panel */}
-             <div className="pt-8 pb-12 space-y-6">
-                <GlassCard className="p-6 text-center" hover={false}>
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                        <Brain className="w-5 h-5 text-violet-500" />
-                        <span className="font-semibold text-slate-800">Ready to Negotiate?</span>
-                    </div>
-                    <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
-                        Let our AI generate a professional email counter-proposal addressing all flagged issues.
-                    </p>
-                    <GlassButton 
-                        onClick={handleGenerateProposal} 
-                        disabled={isGeneratingProposal || proposalText !== null}
-                    >
-                        {isGeneratingProposal ? (
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-                                <Sparkles className="w-4 h-4" />
-                            </motion.div>
-                        ) : (
-                            <Sparkles className="w-4 h-4" />
-                        )}
-                        {isGeneratingProposal ? "Generating Draft..." : "Generate Counter-Proposal"}
-                    </GlassButton>
-                </GlassCard>
-
-                {/* Animated Proposal Reveal */}
-                <AnimatePresence>
-                    {proposalText && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0, y: 20 }}
-                            animate={{ opacity: 1, height: "auto", y: 0 }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                            className="overflow-hidden"
-                        >
-                            <GlassCard className="p-6 relative overflow-hidden" hover={false}>
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-400 to-pink-500" />
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <Sparkles className="w-4 h-4 text-violet-500" />
-                                        <span className="font-semibold text-slate-800">AI Suggested Draft</span>
-                                    </div>
-                                    <GlassButton variant="secondary" size="sm" onClick={handleCopyProposal}>
-                                        {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                        {isCopied ? "Copied!" : "Copy"}
-                                    </GlassButton>
-                                </div>
-                                <div className="p-4 rounded-xl bg-white/50 border border-slate-100 font-mono text-sm text-slate-600 whitespace-pre-wrap leading-relaxed text-left">
-                                    {proposalText}
-                                </div>
-                            </GlassCard>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-             </div>
-          </motion.div>
-
-        </div>
-      </div>
-    </section>
+      <section className="report-print hidden print:block">
+        <h1>LEXGUARD · {result.is_demo ? "Sample contract report" : "AI-assisted contract report"}</h1>
+        <p>Document: {result.fileName}</p><p>Generated: {result.analyzedAt} · Provider: {result.provider_used} · Reference: {result.request_id}</p>
+        <p>Reviewing party: {result.context.reviewing_party} · Jurisdiction: {result.context.jurisdiction} · Type: {result.context.contract_type}</p>
+        <p>Risk estimate: {result.overall_risk_score}/100 · Fairness estimate: {result.fairness_score}/100</p>
+        <p>All {result.coverage.analyzed_characters} extracted characters submitted in {result.coverage.batches} section(s).</p>
+        <p>{result.summary}</p>
+        <h2>Scope and limitations</h2><ul>{result.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>
+        <h2>All findings ({result.clauses.length})</h2>
+        {!result.clauses.length && <p>No findings returned. This does not establish that the contract is safe to sign.</p>}
+        {result.clauses.map(clause => <article key={clause.clause_id} className="print-finding">
+          <h3>{clause.clause_type} · {clause.severity} · Risk {clause.risk_score}/10</h3>
+          <p>Source: {clause.source_page ? "page " + clause.source_page : "character " + (clause.source_start + 1)}</p>
+          <blockquote>{clause.original_clause}</blockquote><p>{clause.plain_english}</p>
+          <p><strong>Potential risk:</strong> {clause.why_risky}</p><p><strong>Possible impact:</strong> {clause.real_world_impact}</p>
+          <p><strong>Negotiation suggestion:</strong> {clause.negotiation_tip}</p>
+          <p>Affected party: {clause.affected_party} · Model confidence estimate: {clause.confidence_score}% (uncalibrated)</p>
+        </article>)}
+      </section>
+    </div>
   )
-}
-
-function AnimatedNumber({ value, delay }: { value: number; delay: number }) {
-  const [displayValue, setDisplayValue] = useState(0)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      let start = 0
-      const duration = 1500
-      const startTime = Date.now()
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        const easeOut = 1 - Math.pow(1 - progress, 3)
-        setDisplayValue(Math.floor(easeOut * value))
-
-        if (progress < 1) {
-          requestAnimationFrame(animate)
-        }
-      }
-
-      requestAnimationFrame(animate)
-    }, delay * 1000)
-
-    return () => clearTimeout(timer)
-  }, [value, delay])
-
-  return (
-    <>
-      <span className="print:hidden">{displayValue}</span>
-      <span className="hidden print:inline">{value}</span>
-    </>
-  )
-}
-
-function RiskBar({ label, score, color, delay }: { label: string, score: number, color: string, delay: number }) {
-   const colorMap: Record<string, string> = {
-       violet: "from-violet-400 to-purple-500",
-       cyan: "from-cyan-400 to-blue-500",
-       rose: "from-rose-400 to-pink-500",
-       amber: "from-amber-400 to-orange-500"
-   }
-   const gradient = colorMap[color] || colorMap.violet
-
-   return (
-       <div className="space-y-1.5">
-           <div className="flex justify-between text-xs font-medium">
-               <span className="text-slate-600">{label}</span>
-               <span className="text-slate-400">{score}/100</span>
-           </div>
-           <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-               <motion.div 
-                  className={`h-full bg-gradient-to-r ${gradient} rounded-full print:hidden`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${score}%` }}
-                  transition={{ duration: 1, delay, ease: "easeOut" }}
-               />
-               <div 
-                  className={`hidden print:block h-full bg-gradient-to-r ${gradient} rounded-full`}
-                  style={{ width: `${score}%` }}
-               />
-           </div>
-       </div>
-   )
 }

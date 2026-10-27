@@ -1,8 +1,10 @@
-/**
- * Centralized API configuration for LEXGUARD frontend.
- * Automatically switches between local dev and deployed production backend.
- */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://127.0.0.1:8000"
+/** Same-origin proxy keeps the backend service key on the server. */
+export const API_BASE_URL = "/api"
+export const MAX_FILE_BYTES = 4 * 1024 * 1024
+
+export function uploadError(file: Pick<File, "name" | "size">): string | null {
+  if (!/\.(pdf|docx)$/i.test(file.name)) return "Choose a PDF or DOCX. Convert older .doc files first."
+  if (file.size === 0) return "This file is empty."
+  if (file.size > MAX_FILE_BYTES) return "Choose a file of 4 MiB or less."
+  return null
+}
