@@ -145,6 +145,8 @@ There is no report-history database. Uploads are processed for the current reque
 
 The public application is available at [lexguard-frontend-seven.vercel.app](https://lexguard-frontend-seven.vercel.app/). Deployment requires matching server-only `ANALYSIS_API_KEY` values on the frontend/backend, `BACKEND_API_URL` on Vercel, and configured AI provider credentials on the backend. Environment changes take effect in a new deployment; opening the landing page alone does not verify the upload workflow.
 
+**Live verification, 28 October 2026:** synthetic DOCX and searchable PDF uploads through the public app both returned genuine Gemini reports with complete extracted-text coverage and exact source-linked findings. Both responses passed the frontend validator, Markdown report generation, negotiation-template generation, and JSON round-trip checks. The deployed schema compatibility fix preserves strict server-side validation. The OpenRouter fallback currently requires billing/credit attention; the Gemini primary path is working. See [verification details and remaining manual checks](docs/VERIFICATION.md).
+
 See [DEPLOYMENT.md](DEPLOYMENT.md) for required production secrets, single-worker constraints, and release checks. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for recorded validation and its scope.
 
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) tracks this hardening work. [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) records the original baseline, not the current implementation. [docs/EVALUATION.md](docs/EVALUATION.md) describes model-quality checks.

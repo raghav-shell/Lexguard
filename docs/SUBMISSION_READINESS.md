@@ -1,125 +1,96 @@
 # End-term submission readiness audit
 
-Checked on 27 October 2026 against commit `8d8e32d` and the supplied **End-Term Software Project — Project Submission Guidelines**.
+Updated on **28 October 2026** against application fix `018d5f1` and the supplied **End-Term Software Project — Project Submission Guidelines**.
 
-**Verdict: the implementation fits the project requirements, but the submission is not ready yet.** The deployed main upload/review workflow is blocked by missing or invalid frontend server configuration. README product framing and access links have now been updated. Video verification and final form completion still need attention.
+**Verdict: the implementation fits the project requirements and the core deployed upload/review workflow now succeeds.** The original frontend configuration failure and Gemini schema rejection have been fixed. Browser/mobile/visual print verification, demo playback/content, and actual form submission remain unconfirmed. The optional OpenRouter fallback currently requires quota/billing attention; primary Gemini analysis is working.
 
-The deadline in the supplied guidelines and the public submission form is **27 October 2026, 11:59 PM IST**. A GitHub push alone does not complete submission.
+The supplied deadline was **27 October 2026, 11:59 PM IST**. This technical audit cannot confirm whether a submission was made before that deadline. A GitHub push alone does not complete submission.
 
-## Confirmed external evidence
+## Confirmed evidence
 
 | Check | Observed result |
 | --- | --- |
-| [Public repository](https://github.com/raghav-shell/Lexguard) | HTTP 200 without authentication; GitHub metadata reports public visibility |
-| Git history | 58 commits, with substantive implementation, debugging, and deployment changes before the latest hardening commit |
-| [GitHub Actions](https://github.com/raghav-shell/Lexguard/actions/runs/40537330842) | `Quality checks` completed successfully for commit `8d8e32de6f5b77e0388aa35997199e991946d269` |
-| [Frontend](https://lexguard-frontend-seven.vercel.app/) | HTTP 200 without authentication; current review/context/source-linked-findings UI is present |
-| [Backend liveness](https://lexguard-backend-w5k1.onrender.com/health) | HTTP 200, `status: alive`, version `3.0.0` |
-| [Backend readiness](https://lexguard-backend-w5k1.onrender.com/ready) | HTTP 200, `status: configured`, `provider_connectivity: not_probed`; this does not establish successful model calls |
-| Live upload | A short synthetic DOCX sent through the public frontend proxy returned HTTP **503**, code **`proxy_not_configured`**, rather than an analysis |
-| [Demo video](https://drive.google.com/file/d/1AtPFyL2P54Hh2dFmx7QJNom6dRRytfBU/view?usp=drive_link) | Anonymous HTTP 200; page title `Lexguard 3.mp4 - Google Drive`, MP4 preview metadata, no access-request/sign-in-to-continue page detected. Playback, duration, and content were not verified |
-| [Official form](https://forms.gle/sBy4sfqyiRG2Zpom9) | Public form opened and displayed submission fields and the stated deadline; the user's submission has not been confirmed |
+| [Public repository](https://github.com/raghav-shell/Lexguard) | Publicly accessible; 62 commits at application fix `018d5f1`, including substantive engineering and deployment fixes |
+| [GitHub Actions](https://github.com/raghav-shell/Lexguard/actions/runs/40563606291) | Quality checks completed successfully for `018d5f16d172ef8f09e336fe55631e43c61a043f` |
+| Local regression suites | 30 backend and 15 frontend tests passed; generated client contract is current |
+| [Frontend](https://lexguard-frontend-seven.vercel.app/) | HTTP 200; rebuilt production deployment serves the public alias; JavaScript assets return 200 |
+| [Backend health](https://lexguard-backend-w5k1.onrender.com/health) | HTTP 200, alive, version 3.0.0 |
+| [Backend readiness](https://lexguard-backend-w5k1.onrender.com/ready) | HTTP 200, configured; actual provider success was tested separately below |
+| Direct backend protection | Upload without private service key returns 401 |
+| Invalid frontend upload | Unsupported TXT returns 415 through the same-origin proxy |
+| Real DOCX review | Public frontend → protected backend → actual Gemini; HTTP 200 in 20.93 seconds; 4 findings, all 1,049 extracted characters covered, exact source offsets, correct context, no sample substitution |
+| Real PDF review | Same production flow; HTTP 200 in 15.53 seconds; 4 findings, one page and all 201 extracted characters covered, exact source offsets, correct context, no sample substitution |
+| Returned report handling | Both live responses pass frontend runtime validation, complete Markdown report generation, negotiation-template generation, and JSON round-trip checks |
+| [Demo video](https://drive.google.com/file/d/1AtPFyL2P54Hh2dFmx7QJNom6dRRytfBU/view?usp=drive_link) | Previously opened anonymously with HTTP 200 and MP4 preview metadata. Playback, duration, and final-product content remain unverified |
+| [Official form](https://forms.gle/sBy4sfqyiRG2Zpom9) | Submission fields previously inspected; the user's completed submission has not been confirmed |
 
-## Blocking deployment finding
+The live inputs were small fictional documents. These checks establish that the deployed review pipeline works for those inputs; they do not establish legal accuracy, representative document quality, load capacity, or completed submission. See [VERIFICATION.md](VERIFICATION.md) for scope and remaining checks.
 
-The deployed frontend responded:
+## Resolved deployment findings
 
-```json
-{
-  "error": {
-    "code": "proxy_not_configured",
-    "message": "The analysis service is not configured. You can still explore the sample report."
-  }
-}
-```
-
-The condition in [`route.ts`](../lexguard_frontend/app/api/analyze-contract/route.ts) returns this response when the production frontend's server-only `ANALYSIS_API_KEY` is absent or shorter than 32 characters. Backend liveness and a successful Vercel build do not resolve this failure.
-
-Required remediation:
-
-1. Configure a sufficiently long random **server-only** `ANALYSIS_API_KEY` on Vercel, matching the backend service key. Do not publish the key or place it in a `NEXT_PUBLIC_*` variable.
-2. Verify `BACKEND_API_URL=https://lexguard-backend-w5k1.onrender.com` on the frontend and the backend's intended production settings.
-3. Redeploy the applicable services after configuration changes.
-4. Repeat a real synthetic upload and confirm an actual provider result, correct source text, grounded findings, and usable export/negotiation flows.
-
-This audit did not change hosting configuration or attempt to bypass the key requirement. The failed request stopped at the frontend configuration check, so no live model result was obtained.
+1. Vercel was missing its server-only `ANALYSIS_API_KEY`, causing `proxy_not_configured`. Matching private keys and the actual `BACKEND_API_URL` are now configured, and the frontend was rebuilt.
+2. Render now uses `ENVIRONMENT=production`, and unauthenticated direct review requests are rejected.
+3. Live requests exposed a Gemini 400 schema rejection. The generation grammar was simplified while keeping strict canonical Pydantic validation, bounded findings/scores, and exact source grounding.
+4. Explicit model names replaced the unavailable fallback-model configuration. OpenRouter now returns 402 for quota/billing, which remains an account issue. Gemini's successful primary path was verified twice.
 
 ## Requirement-by-requirement assessment
 
-Status meanings: **Meets** = implementation or direct evidence supports it; **Partial** = some required evidence is missing; **Blocked** = an observed failure prevents completion; **Unverified** = cannot establish from available evidence; **Conditional** = required only if the product needs it.
+**Meets** indicates code, tests, or direct evidence supports the requirement. **Partial** means some evidence remains missing. **Conditional** means the feature is required only if the product needs it.
 
-| Guideline | Status | Project evidence / remaining gap |
+| Guideline | Status | Evidence / remaining gap |
 | --- | --- | --- |
-| Working application, not static website | Blocked in deployment | Real application code and local integration tests exist, but the deployed core review request currently fails with 503 |
-| 1. Technology stack | Meets | Next.js/React/TypeScript frontend and Python/FastAPI backend are permitted. The guidelines and form explicitly allow any stack |
-| 2. Meaningful actions and state changes | Meets in code; live blocked | Upload/context → extraction → model analysis → validated findings → report UI; live execution needs the deployment fix |
-| 3. Product understanding | Meets documentation requirements | Contract review and negotiation are a coherent use case. README now includes an explicit problem statement, named target users, solution, and four primary workflows |
-| 4. Engineering depth | Meets | File validation, parser isolation, bounded extraction/batching, source verification, provider fallback, deadlines, admission controls, runtime schemas, exports, tests, and CI |
-| 5. Application logic beyond an API wrapper | Meets | The model is only one step in the processing/validation pipeline; the application adds document handling, evidence checks, conservative aggregation, context, filtering, source navigation, and export logic |
-| 6. Data and persistence | Acceptable for current scope | A stateless, per-document tool with explicit downloads need not have a traditional database. Do not advertise saved history, durable cloud reports, or resumable work; those would require persistence |
-| 7. Authentication and authorization | Conditional; service protection implemented | The current tool has no accounts or stored/shared user resources. Backend service-key protection is not end-user identity. Add user authentication/ownership checks if private history, workspaces, or shared reports are introduced |
-| 8. Usable UX and states | Partial verification | Loading, cancellation, error, empty, results, filters, navigation, and explicit sample states exist. Interactive/mobile/visual print checks remain unverified; deployed analysis is blocked |
-| 9. Error handling | Meets in code; public failure confirmed | Invalid input, uploads, configuration, unauthorized backend access, provider failure, cancellation, and timeouts have explicit paths and regression tests. The live 503 is honest but still prevents the required successful workflow |
-| 10. Security | Reasonable controls present; not a certification | Input/resource limits, safe text rendering, server-only secrets, restricted CORS, no-store reports, and redacted diagnostics are implemented. Known-pattern scanning found no likely keys/private keys in tracked text or the 58-commit patch history. Production configuration and full data handling still require validation |
-| 11. Git and version control | Meets | Public repository, meaningful 58-commit development history, structured source/configuration/tests/docs; not a single final-upload history |
-| 12. Evaluator-accessible deployment | Blocked | The URL is public and opens, but the primary upload/review action fails. A reachable landing page or sample report is insufficient |
-| 13. README/documentation | Meets content requirements | README now includes explicit problem/users/solution/stack sections, actual app/repository/video links, architecture, setup, environment guidance, limits, and workflows |
-| 14. Demo video | Partial verification | Link supplied and anonymous preview page accessible. Confirm playback and that it demonstrates the final working product. Three to five minutes is recommended, not an absolute duration requirement |
-| 15. AI usage | Permitted | AI assistance and external models are allowed. Existing engineering around the model is substantial; deployment and output quality still need real verification |
-| 16. Originality | Unverified in full | Meaningful implementation work is visible, but source inspection cannot establish authorship or originality conclusively. Disclose any significant external-project basis if applicable; using libraries/frameworks/AI alone is allowed |
-| 17. Excluded project categories | Design fits; deployed completeness blocked | This is not merely static content, CRUD, or a thin API wrapper. However, an unusable major workflow would still make the final submitted product incomplete |
-| 18. Approximately 3–5 complete workflows | Good scope; demonstrate live | Four coherent workflows are listed below. Complete and demonstrate those instead of adding unrelated features |
-| 19. Evaluation rubric | Evidence supports engineering; no grade predicted | Strong engineering/architecture/test evidence exists. Product framing, working deployment, and demonstration are the immediate weaknesses. A numerical grade cannot be established by this audit |
-| 20. Final submission fields/form | Unverified | Repository and live/video links are known. Full name, SST email, batch, final narrative, and actual form submission/confirmation remain user-controlled or unconfirmed |
-| 21. Final checklist | Not complete | Core live workflow, demo content/playback, and final submission confirmation must be resolved |
+| Working application | Meets for verified core flow | Public PDF/DOCX uploads produce genuine source-linked reports |
+| 1. Technology stack | Meets | Permitted Next.js/React/TypeScript and Python/FastAPI stack |
+| 2. Meaningful actions and state changes | Meets | Upload/context → extraction → actual model analysis → validated findings/report; filters, negotiation templates, and exports implemented |
+| 3. Product understanding | Meets | README states problem, target users, solution, and four main workflows |
+| 4. Engineering depth | Meets | Isolated/bounded parsing, batching, evidence checks, deadlines, admission controls, provider adapters, generated schemas, tests, CI |
+| 5. Logic beyond an API wrapper | Meets | Document handling, validation, source offsets, aggregation, context, filtering, and export logic surround provider calls |
+| 6. Data and persistence | Acceptable for scope | Stateless per-document review with downloads; no claims of saved history or persistent sharing |
+| 7. Authentication and authorization | Conditional | No user accounts or saved/shared resources. Backend service protection is implemented. End-user identity/ownership is needed if persistent private resources are added |
+| 8. Usable UX and states | Partial verification | Loading, cancellation, errors, sample/results states, filters, navigation, and drafts have regression coverage; interactive/mobile/visual print checks remain |
+| 9. Error handling | Meets in code and tested cases | Invalid uploads, unauthorized access, configuration/provider failure, deadlines, and cancellation handled; safe status/reason diagnostics added |
+| 10. Security | Controls present; not a certification | Input/resource bounds, safe rendering, private keys, origin checks, no-store reports, redacted diagnostics; baseline secret-pattern scan found no likely secrets in the then-current tree/history |
+| 11. Git and version control | Meets | Public repository with substantive development and tested fix history |
+| 12. Evaluator-accessible deployment | Meets for tested uploads | Public URL works without login; actual PDF/DOCX reviews returned 200 |
+| 13. README/documentation | Meets | Problem/users/solution/features/stack/architecture/setup/environment/deployment and actual app/repo/video links |
+| 14. Demo video | Partial verification | Link supplied and anonymously accessible preview observed; confirm playback and final working version. Three to five minutes is recommended |
+| 15. AI usage | Permitted | Real Gemini analysis plus substantial application engineering; no legal-quality or accuracy claim established |
+| 16. Originality | Unverified in full | Meaningful work visible; inspection cannot establish authorship conclusively. Disclose significant external-project basis if applicable |
+| 17. Excluded categories | Design and tested core fit | Functional document-analysis application with application logic and real provider integration |
+| 18. Approximately 3–5 workflows | Scope fits | Four coherent workflows listed below; demonstrate them in the final video |
+| 19. Evaluation rubric | Evidence supports engineering | No numerical grade predicted; presentation and comprehensive product verification still matter |
+| 20. Submission fields/form | Unverified | Correct student identity, batch, narrative, and actual submission confirmation remain user-controlled |
+| 21. Final checklist | Partially complete | Technical core restored; manual UX/demo and submission confirmation remain |
 
-## Four workflows to present
+## Four workflows to demonstrate
 
-1. **Review a document:** upload a real searchable PDF/DOCX, specify role/jurisdiction/type, and obtain a genuine report.
-2. **Inspect evidence:** filter/search findings, expand explanations, and navigate to exact source text.
-3. **Prepare negotiation:** create and edit the clearly labeled email template using clause-specific suggestions; copy/download it.
-4. **Export the review:** download Markdown/JSON and print/save a complete PDF report, independent of screen filters.
+1. **Review a document:** upload a searchable PDF/DOCX, supply context, obtain a genuine report.
+2. **Inspect evidence:** search/filter findings, expand explanations, navigate to exact source text.
+3. **Prepare negotiation:** create/edit the labeled email template using clause-specific suggestions; copy/download it.
+4. **Export the review:** download Markdown/JSON or print/save the complete report, independent of screen filters.
 
-Show a relevant invalid-upload/error case briefly as evidence of reliability. Sample mode can introduce the product but must not stand in for a working live review.
+Show an invalid-upload case briefly. Sample mode is visibly labeled and should not replace demonstration of a real review. Component tests and direct report-function checks support workflows 2–4, but their full interactive production behavior and print pagination have not been visually verified.
 
-## README alignment
-
-The README has been updated with the following required content:
-
-- **Problem statement:** contracts can contain obligations and asymmetric terms that non-specialist reviewers find difficult to identify and compare.
-- **Target users:** identify the actual intended audience, such as freelancers, employees reviewing offers, and small-business reviewers. Confirm these choices rather than claiming the tool serves everyone.
-- **Solution:** explain the document-to-evidence workflow and how it supports informed negotiation, with clear limits on legal accuracy/enforceability.
-- **Tech stack:** one concise list covering Next.js, React, TypeScript, Tailwind/Framer Motion, FastAPI/Python, pdfplumber/DOCX extraction, HTTPX, Gemini/OpenRouter, Pydantic/generated Zod validation, Vercel/Render, tests, and CI.
-- **Access links:** prominently include the real public app URL, GitHub URL, and provided demo-video link.
-- **Primary workflows:** identify the four workflows above and distinguish real analysis from sample mode and email templating.
-
-## Actual public form fields observed
-
-The form displayed:
+## Submission fields previously observed
 
 - Full Name — required
-- SST Email (Check this again) — required
-- Batch (A/B/C) — required
+- SST Email — required
+- Batch A/B/C — required
 - Github Repository URL — required
-- Live URL (Deployed Link) — required
+- Live URL — required
 - Explain the Problem Statement and Technologies Used — required
 
-The supplied written guidelines additionally require a demo video and the final submission details. Even if a separate video field is not visible, ensure the evaluator can find the video in README and include its link in the narrative if appropriate. Seeing the public form does not prove a response was submitted.
+The written guidelines also request a demo video; its link is in README. Seeing the public form does not establish a submitted response or timely completion.
 
-## Final submission checklist
+## Remaining checklist
 
-- [ ] Fix deployed frontend service configuration and verify a real upload succeeds.
-- [ ] Check results, source navigation, negotiation draft, and exports on the public app.
-- [x] Add the missing README product framing and actual app/video links.
-- [x] Public repository access verified.
-- [x] Meaningful Git history verified.
-- [x] Pushed revision's GitHub Actions quality checks passed.
-- [x] No likely secrets found by the specified current-tree/history pattern scan.
-- [x] Public frontend and backend health/readiness URLs opened.
-- [x] Demo link supplied; anonymous preview page opened.
-- [ ] Verify demo playback, content, and whether it shows the final working version.
-- [ ] Verify browser/mobile UX and visual print output.
-- [ ] Complete the official form with the student's correct identity and final links.
-- [ ] Retain submission confirmation and verify completion before **27 October 2026, 11:59 PM IST**.
-
-The appropriate next step is deployment configuration and submission packaging, not adding a database, login system, or unrelated features purely to satisfy a checklist.
+- [x] Restore production configuration and verify real PDF/DOCX uploads.
+- [x] Validate returned source evidence, context, coverage, and non-demo provenance.
+- [x] Validate actual responses in client/report/email/JSON functions.
+- [x] Include README framing, setup, architecture, and actual app/video links.
+- [x] Verify public repository and meaningful history.
+- [x] Pass local regression suites and hosted CI for the application fix.
+- [ ] Resolve OpenRouter quota/billing if a working secondary provider is required.
+- [ ] Visually check findings/source navigation, downloads, editable draft, keyboard/mobile UX, and printed pagination on the public app.
+- [ ] Verify demo playback/content and the final working version.
+- [ ] Confirm the official form was submitted with the correct student details and final links; retain the confirmation and timestamp.

@@ -1,6 +1,19 @@
 # Deployment and operating guide
 
-This revision changes the API contract and browser connection path. Deploy the backend and frontend together after configuring the secrets below. Existing hosted deployments have not been modified by this implementation.
+The production frontend and backend have been redeployed with the current API contract and matching private service keys. Synthetic PDF and DOCX reviews through the public URL succeeded on 28 October 2026; see [the verification record](docs/VERIFICATION.md).
+
+## Current production deployment
+
+| Component | Configuration / verified result |
+| --- | --- |
+| Frontend | [lexguard-frontend-seven.vercel.app](https://lexguard-frontend-seven.vercel.app/), Vercel project `lexguard-frontend`, production target |
+| Backend | [lexguard-backend-w5k1.onrender.com](https://lexguard-backend-w5k1.onrender.com), Render service `srv-d88q80mgvqtc73bcdhbg` |
+| Server connection | Vercel `BACKEND_API_URL` points to that backend; matching server-only `ANALYSIS_API_KEY` configured on both services |
+| Production guard | Render `ENVIRONMENT=production`; direct uploads without the service key return 401 |
+| Primary model | `GEMINI_MODEL=gemini-2.5-flash`; live PDF/DOCX reviews returned real, source-verified reports |
+| Fallback model | `OPENROUTER_MODEL=anthropic/claude-sonnet-4.6`; the previous 404 was resolved, but the account currently rejects requests with 402 (quota/billing) |
+
+Gemini's generation schema omits numerical and length bounds that can make its decoding grammar too complex. The canonical Pydantic schema still validates every returned score, string, array limit, and required field before source grounding and delivery. Do not remove those application checks to address provider compatibility.
 
 ## Backend: Render
 
@@ -28,14 +41,14 @@ Required configuration:
 
 Generate a random key locally with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`, then set it privately in both services. Do not commit it. On an existing Render service, add new secrets manually: [Render does not apply new `sync: false` values during later Blueprint syncs](https://render.com/docs/blueprint-spec#prompting-for-secret-values). [Saved environment changes require the applicable deployment to take effect](https://render.com/docs/configure-environment-variables).
 
-The local Blueprint was structurally checked against Render's public schema. No Blueprint sync, service creation, plan change, or deployment was performed.
+The local Blueprint was structurally checked against Render's public schema. The existing production service was configured through Render's environment-variable API using merged updates; no Blueprint sync, service creation, or plan change was performed.
 
 ## Frontend: Vercel
 
 - Root directory: `lexguard_frontend`.
 - Node.js: 24 LTS.
 - Install: `npm ci`; build: `npm run build`.
-- Set **server-only** `BACKEND_API_URL=https://your-backend.onrender.com`.
+- Set **server-only** `BACKEND_API_URL=https://lexguard-backend-w5k1.onrender.com` for this deployment.
 - Set **server-only** `ANALYSIS_API_KEY` to the same secret as the backend.
 - Remove reliance on the former `NEXT_PUBLIC_API_URL`; browser requests now use `/api/analyze-contract`.
 - The route has a 210-second function duration and request cancellation enabled in `vercel.json`.
@@ -54,7 +67,7 @@ The existing Render plan is preserved. Validate parser memory and concurrency un
 
 ## Privacy and diagnostics
 
-Keep request bodies and provider response bodies out of platform tracing/log capture. Error responses contain stable public messages and a request ID. Application logs include IDs, path, status, duration, and provider attempt failures without exception text. Reports are served with `Cache-Control: no-store`. No report database or analytics is enabled.
+Keep request bodies and provider response bodies out of platform tracing/log capture. Error responses contain stable public messages and a request ID. Application logs include IDs, path, status, duration, and provider attempt failures without exception text. Provider failures include only the HTTP status, exception type, and a fixed reason label such as `invalid_schema` or `quota_or_billing`. Reports are served with `Cache-Control: no-store`. No report database or analytics is enabled.
 
 Do not promise provider-side zero retention unless the actual provider account/configuration supports it. Provide users with the applicable provider terms and authorization requirements.
 
