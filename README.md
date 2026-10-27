@@ -43,6 +43,8 @@ The analysis is one structured model review per text section, using Gemini with 
 
 ## Main workflows
 
+The redesigned interface uses a document-first review workspace, a two-step upload form, source-linked finding cards, responsive source/findings panels, and an editable negotiation draft. See [the interface changes and verification scope](docs/UI_REDESIGN.md).
+
 1. **Review a contract:** upload a PDF/DOCX, add review context, and obtain a source-linked report.
 2. **Inspect findings:** search or filter by domain/severity, expand explanations, and navigate to quoted contract text.
 3. **Prepare negotiation:** generate an editable email template from the report's clause-specific suggestions, then copy or download it.

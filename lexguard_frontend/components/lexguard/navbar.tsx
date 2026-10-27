@@ -1,19 +1,40 @@
-"use client"
-import Link from "next/link"
+"use client";
 
-export function Navbar({ onUploadClick, onDemoClick }: { onUploadClick: () => void; onDemoClick: () => void }) {
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+import { Brand } from "./brand";
+
+export function Navbar({
+  onUploadClick,
+  onDemoClick,
+}: {
+  onUploadClick: () => void;
+  onDemoClick: () => void;
+}) {
   return (
-    <nav aria-label="Main navigation" className="relative z-40 px-6 py-5 bg-white/70 border-b border-violet-100">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-        <Link href="/" className="text-xl font-bold text-violet-900">LEXGUARD</Link>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-slate-700">
-          <a href="#features" className="hover:underline">Features</a>
-          <a href="#how-it-works" className="hover:underline">How it works</a>
-          <a href="#privacy" className="hover:underline">Privacy</a>
-          <button type="button" onClick={onDemoClick} className="font-semibold text-violet-800 underline underline-offset-4">Sample report</button>
-          <button type="button" onClick={onUploadClick} className="bg-violet-700 text-white font-semibold rounded-xl px-4 py-2">Review a contract</button>
+    <nav aria-label="Main navigation" className="site-nav">
+      <div className="shell nav-inner">
+        <Link href="/" aria-label="Lexguard home">
+          <Brand />
+        </Link>
+        <div className="nav-links">
+          <a href="#features">Why Lexguard</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#privacy">Your privacy</a>
+        </div>
+        <div className="nav-actions">
+          <button type="button" onClick={onDemoClick} className="nav-sample">
+            Sample report
+          </button>
+          <button
+            type="button"
+            onClick={onUploadClick}
+            className="button button-dark button-small"
+          >
+            Review a contract <ArrowUpRight size={15} aria-hidden="true" />
+          </button>
         </div>
       </div>
     </nav>
-  )
+  );
 }

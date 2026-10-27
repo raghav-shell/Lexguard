@@ -1,38 +1,25 @@
-import type { Metadata, Viewport } from 'next'
-import { Toaster } from 'sonner'
-import './globals.css'
+import type { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'LEXGUARD | AI Contract Intelligence',
-  description: 'AI-powered contract analysis. Understand legal risks before you sign.',
+  title: "LEXGUARD | AI Contract Intelligence",
+  description:
+    "AI-powered contract analysis. Understand legal risks before you sign.",
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
   },
-}
+};
 
 export const viewport: Viewport = {
-  themeColor: '#f8f7ff',
-  colorScheme: 'light',
-}
+  themeColor: "#f7f7f2",
+  colorScheme: "light",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" className="bg-background">
@@ -41,5 +28,5 @@ export default function RootLayout({
         <Toaster position="top-center" richColors />
       </body>
     </html>
-  )
+  );
 }

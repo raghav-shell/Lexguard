@@ -1,34 +1,176 @@
+import {
+  ArrowUpRight,
+  FileSearch,
+  Layers3,
+  MessageSquareText,
+  ScanText,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react";
+
 const features = [
-  ["Source-linked findings", "Read the quoted wording alongside plain-language explanations, potential impacts, and negotiation suggestions."],
-  ["Five review domains", "Review employment, privacy, financial exposure, intellectual property, and contractual fairness where relevant."],
-  ["Context that matters", "Specify your reviewing role, contract type, and governing jurisdiction to help focus the review."],
-  ["Portable reports", "Download a readable report or JSON, print the complete findings, and prepare an editable negotiation email."],
-]
+  {
+    icon: ScanText,
+    number: "01",
+    title: "See the wording. Understand the risk.",
+    description:
+      "Every finding leads back to the exact text in your agreement. Read the explanation and inspect the evidence, side by side.",
+    className: "feature-evidence",
+    label: "SOURCE-LINKED INSIGHTS",
+  },
+  {
+    icon: SlidersHorizontal,
+    number: "02",
+    title: "A review with your perspective.",
+    description:
+      "Add your role, contract type, and jurisdiction to give the review the context that matters to you.",
+    className: "feature-context",
+    label: "CONTEXT-AWARE REVIEW",
+  },
+  {
+    icon: MessageSquareText,
+    number: "03",
+    title: "Go into the conversation prepared.",
+    description:
+      "Turn clause-specific suggestions into an editable negotiation email. Make it yours before you send it.",
+    className: "",
+    label: "PRACTICAL NEXT STEPS",
+  },
+  {
+    icon: Layers3,
+    number: "04",
+    title: "Take your review with you.",
+    description:
+      "Download a readable report, export the data, or save the complete review as a PDF. Your next step is up to you.",
+    className: "",
+    label: "PORTABLE REPORTS",
+  },
+];
 
 export function FeaturesSection() {
   return (
-    <div className="relative px-6 pb-20 max-w-6xl mx-auto">
-      <section id="features" className="scroll-mt-8 py-10">
-        <h2 className="text-3xl font-bold text-slate-900 mb-7">Understand the terms before you negotiate</h2>
-        <div className="grid md:grid-cols-2 gap-5">
-          {features.map(([title, description]) => <article key={title} className="bg-white/80 border border-violet-100 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3><p className="mt-3 text-slate-600">{description}</p>
-          </article>)}
+    <>
+      <section id="features" className="section-space shell">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">BUILT FOR THE MOMENT BEFORE YOU SIGN</p>
+            <h2>
+              Less legal overwhelm.
+              <br />
+              <em>More informed decisions.</em>
+            </h2>
+          </div>
+          <p>
+            From the first read to the next conversation, keep the important
+            details in focus.
+          </p>
+        </div>
+        <div className="feature-grid">
+          {features.map(({ icon: Icon, ...feature }) => (
+            <article
+              key={feature.number}
+              className={"feature-card " + feature.className}
+            >
+              <div className="feature-top">
+                <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+                <span>{feature.number}</span>
+              </div>
+              <p className="mini-label">{feature.label}</p>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+              {feature.number === "01" && (
+                <div className="feature-quote">
+                  <span>
+                    “...including all pre-existing intellectual property.”
+                  </span>
+                  <span>
+                    <span className="status-dot" /> Linked to your source
+                  </span>
+                </div>
+              )}
+            </article>
+          ))}
         </div>
       </section>
-      <section id="how-it-works" className="scroll-mt-8 py-10">
-        <h2 className="text-3xl font-bold text-slate-900 mb-5">How it works</h2>
-        <ol className="list-decimal pl-6 space-y-4 text-slate-700">
-          <li>Upload one searchable PDF or DOCX and optionally add review context.</li>
-          <li>Extracted text is reviewed in bounded sections by a configured AI provider. Quotes are checked against the source.</li>
-          <li>Inspect findings, follow source links, and adapt negotiation suggestions. Check important terms with qualified counsel.</li>
-        </ol>
+      <section id="how-it-works" className="workflow-section section-space">
+        <div className="shell">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">A SIMPLE WAY THROUGH</p>
+              <h2>
+                From document
+                <br />
+                <em>to understanding.</em>
+              </h2>
+            </div>
+            <a href="#upload" className="text-link">
+              Start your review <ArrowUpRight size={17} aria-hidden="true" />
+            </a>
+          </div>
+          <ol className="workflow-grid">
+            {[
+              {
+                icon: FileSearch,
+                title: "Bring your agreement",
+                text: "Upload a searchable PDF or DOCX. Add a little context so the review reflects your perspective.",
+              },
+              {
+                icon: ScanText,
+                title: "Make sense of the terms",
+                text: "Explore plain-language findings, estimated risks, and exact quotations from your document.",
+              },
+              {
+                icon: MessageSquareText,
+                title: "Choose your next step",
+                text: "Prepare questions, adapt negotiation suggestions, and take your report into the conversation.",
+              },
+            ].map(({ icon: Icon, title, text }, index) => (
+              <li key={title}>
+                <div className="workflow-number">
+                  0{index + 1}
+                  <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
-      <section id="privacy" className="scroll-mt-8 py-10">
-        <h2 className="text-3xl font-bold text-slate-900 mb-5">Your document and privacy</h2>
-        <p className="text-slate-700 leading-8">Uploaded files are processed for the current request. Extracted text goes to the configured provider, and a fallback provider may be used. The app has no report-history database; the report remains in the current browser view until you leave or reload. Downloads contain contract text and findings—store them appropriately. Provider retention and data handling follow their own terms.</p>
-        <p className="text-slate-700 leading-8 mt-3">The review covers extractable text, not images or original document layout. Scans require OCR. AI may miss risks or misinterpret language; risk and confidence scores are estimates and do not establish legal enforceability.</p>
+      <section id="privacy" className="shell privacy-section">
+        <div className="privacy-panel">
+          <div>
+            <div className="privacy-icon">
+              <ShieldCheck size={28} strokeWidth={1.5} aria-hidden="true" />
+            </div>
+            <p className="eyebrow">YOUR DOCUMENT DESERVES CARE</p>
+            <h2>
+              Clear about the terms.
+              <br />
+              <em>And your data.</em>
+            </h2>
+          </div>
+          <div className="privacy-copy">
+            <h3>A review for this moment.</h3>
+            <p>
+              There’s no account or saved report history. Your report stays in
+              the current browser view until you leave or reload. Download
+              anything you want to keep.
+            </p>
+            <h3>Know where your text goes.</h3>
+            <p>
+              Extracted text is sent to the configured AI provider, and a
+              fallback provider may be used. Provider data handling follows
+              their terms. Only upload documents you’re authorized to process.
+            </p>
+            <p className="privacy-footnote">
+              AI can miss issues. This is a starting point for informed review,
+              not legal advice or a determination of enforceability. Check
+              important terms with qualified counsel.
+            </p>
+          </div>
+        </div>
       </section>
-    </div>
-  )
+    </>
+  );
 }
