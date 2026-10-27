@@ -89,6 +89,20 @@ class ContractTests(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 ProviderAnalysis.model_validate({**analysis(), **update})
 
+    def test_gemini_grammar_simplification_preserves_runtime_validation(self):
+        schema = providers.gemini_response_schema()
+        self.assertEqual(schema["required"], ProviderAnalysis.model_json_schema()["required"])
+        self.assertFalse(schema["additionalProperties"])
+        clause = schema["$defs"]["ProviderClause"]
+        self.assertIn("critical", clause["properties"]["severity"]["enum"])
+        self.assertNotIn("maximum", clause["properties"]["risk_score"])
+        self.assertNotIn("maxItems", schema["properties"]["clauses"])
+        # Removing provider grammar bounds must never relax application checks.
+        self.assertEqual(ProviderAnalysis.model_json_schema()["properties"]["clauses"]["maxItems"], 16)
+        for invalid in [{**analysis(), "overall_risk_score":101}, {**analysis(), "clauses":analysis()["clauses"] * 17}]:
+            with self.assertRaises(ValidationError):
+                ground_analysis(invalid, SOURCE, 0, [])
+
     def test_confidence_is_independent_and_zero_is_preserved(self):
         _, clauses = ground_analysis(analysis(severity="low", score=2, confidence=0), SOURCE, 0, [])
         self.assertEqual((clauses[0].risk_score, clauses[0].confidence_score), (2, 0))

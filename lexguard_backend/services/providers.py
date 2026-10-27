@@ -41,6 +41,23 @@ def rejection_reason(body: bytes) -> str:
     return "request_rejected"
 
 
+def gemini_response_schema() -> dict:
+    """Keep generation grammar small; Pydantic still enforces every bound."""
+    # Gemini can reject bounded arrays of objects with bounded numbers as too
+    # complex. These constraints remain in the canonical validation schema and
+    # prompt, but must not multiply the provider's constrained-decoding states.
+    omitted = {"title", "minimum", "maximum", "minLength", "maxLength", "minItems", "maxItems"}
+
+    def simplify(value):
+        if isinstance(value, dict):
+            return {key: simplify(item) for key, item in value.items() if key not in omitted}
+        if isinstance(value, list):
+            return [simplify(item) for item in value]
+        return value
+
+    return simplify(ProviderAnalysis.model_json_schema())
+
+
 async def _post(client: httpx.AsyncClient, url: str, headers: dict, payload: dict) -> dict:
     for attempt in range(2):
         try:
@@ -78,7 +95,7 @@ async def gemini(client: httpx.AsyncClient, system: str, content: str) -> dict:
          "contents": [{"role": "user", "parts": [{"text": content}]}],
          "generationConfig": {"temperature": 0.1, "maxOutputTokens": 12000,
                               "responseMimeType": "application/json",
-                              "responseJsonSchema": ProviderAnalysis.model_json_schema()}},
+                              "responseJsonSchema": gemini_response_schema()}},
     )
     candidate = result.get("candidates", [{}])[0]
     if candidate.get("finishReason") != "STOP":
